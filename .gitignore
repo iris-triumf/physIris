@@ -1,0 +1,12 @@
+*.o 
+*Dict.cxx 
+*Dict.cpp 
+*Dict.h 
+core 
+*~ 
+*.so
+*.swp
+*.swo
+*.root
+*.png
+*.log

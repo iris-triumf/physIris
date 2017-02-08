@@ -1,0 +1,6 @@
+RUNDEPPAR=/home/iris/current/calib/runDepPar_s1537_8He.txt
+DEDX_I=/home/iris/current/calib/dedx_8He.txt
+DEDX_H=/home/iris/current/calib/dedx_8He.txt
+DEDX_L=/home/iris/current/calib/dedx_p.txt
+GATES=/home/iris/old_anaIris/treeIris/gates/gates_s1483.root
+USE_ICGATES!
