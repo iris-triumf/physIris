@@ -33,20 +33,23 @@ CXXFLAGS      += -g -Wall -ansi -Df2cFortran -fPIC $(ROOTCFLAGS)
 
 ANAOBJECTS  =  $(OBJECTDIR)/HandlePHYSICS.o $(OBJECTDIR)/eloss.o $(LIBDIR)/libTEvent.so $(OBJECTDIR)/TEventDict.o $(OBJECTDIR)/nucleus.o $(OBJECTDIR)/runDepPar.o $(OBJECTDIR)/CalibPHYSICS.o $(OBJECTDIR)/Graphsdedx.o $(OBJECTDIR)/geometry.o 
 
-ifdef MIDASSYS
-CXXFLAGS += -DHAVE_MIDAS -DOS_LINUX -Dextname -I$(MIDASSYS)/include
-MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a
-endif
+# ifdef MIDASSYS
+# CXXFLAGS += -DHAVE_MIDAS -DOS_LINUX -Dextname -I$(MIDASSYS)/include
+# MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a
+# endif
 
 SOFLAGS       = -g -shared
 LDFLAGS	      = -O2	
 
 all: $(BINARYDIR)/physIris $(LIBDIR)/libTEvent.so
 
-$(BINARYDIR)/physIris: $(ANAOBJECTS) $(OBJECTDIR)/physIris.o $(MIDASLIBS) $(ROOTANA)/lib/librootana.a 
-	$(CXX) -o $@ $(CXXFLAGS) $^ $(MIDASLIBS) $(NETDIRLIB) $(ROOTGLIBS) -lm -lz -lutil -lnsl -lpthread -lrt
+$(BINARYDIR)/physIris: $(ANAOBJECTS) $(OBJECTDIR)/physIris.o 
+	$(CXX) -o $@ $(CXXFLAGS) $^ $(ROOTGLIBS) -lm -lz -lutil -lnsl -lpthread -lrt
 
-$(LIBDIR)/libTEvent.so:	$(OBJECTDIR)/TEvent.o $(OBJECTDIR)/IDet.o $(OBJECTDIR)/ITdc.o $(OBJECTDIR)/IScaler.o $(OBJECTDIR)/TEventDict.o
+# $(BINARYDIR)/physIris: $(ANAOBJECTS) $(OBJECTDIR)/physIris.o $(MIDASLIBS) $(ROOTANA)/lib/librootana.a 
+# 	$(CXX) -o $@ $(CXXFLAGS) $^ $(MIDASLIBS) $(NETDIRLIB) $(ROOTGLIBS) -lm -lz -lutil -lnsl -lpthread -lrt
+
+$(LIBDIR)/libTEvent.so:	$(OBJECTDIR)/TEvent.o $(OBJECTDIR)/IDet.o $(OBJECTDIR)/ITdc.o $(OBJECTDIR)/PTrack.o $(OBJECTDIR)/IScaler.o $(OBJECTDIR)/TEventDict.o
 	$(LD) $(SOFLAGS) $(LDFLAGS) $^ -o $@
 	@echo "$@ done"
 
@@ -83,13 +86,16 @@ $(OBJECTDIR)/ITdc.o: $(SOURCEDIR)/ITdc.cxx
 $(OBJECTDIR)/IScaler.o: $(SOURCEDIR)/IScaler.cxx 
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+$(OBJECTDIR)/PTrack.o: $(SOURCEDIR)/PTrack.cxx 
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 $(OBJECTDIR)/TEvent.o: $(SOURCEDIR)/TEvent.cxx 
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJECTDIR)/TEventDict.o: $(LIBDIR)/TEventDict.cxx
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(LIBDIR)/TEventDict.cxx:  $(INCLUDEDIR)/TEvent.h $(INCLUDEDIR)/IDet.h $(INCLUDEDIR)/ITdc.h $(INCLUDEDIR)/IScaler.h $(INCLUDEDIR)/TEventLinkDef.h
+$(LIBDIR)/TEventDict.cxx:  $(INCLUDEDIR)/TEvent.h $(INCLUDEDIR)/IDet.h $(INCLUDEDIR)/ITdc.h $(INCLUDEDIR)/IScaler.h $(INCLUDEDIR)/PTrack.h $(INCLUDEDIR)/TEventLinkDef.h
 	@echo "Generating dictionary $@..."
 	@rootcint -f $@ -c $(HEADER) $^
 

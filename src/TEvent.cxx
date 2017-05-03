@@ -27,7 +27,7 @@ using namespace std;
 TEvent::TEvent() {
   //  TBranch       *b_fqV;                                            // */
 
-   TTree        *fChain;                       // pointer to the analyzed TTree or TChain
+   //TTree        *fChain;                       // pointer to the analyzed TTree or TChain
 
   TEvent::Class()->IgnoreTObjectStreamer();
   //IParticle::Class()->IgnoreTObjectStreamer();   
@@ -41,11 +41,17 @@ TEvent::TEvent() {
 
   fLP=0; //Light particle energy //
   fHP=0; //Heavy particle energy //
+  fEB=0; //Measured heavy particle energy
+  fEB1=0; //Calculated heavy particle energy
+  fPB1=0; //Calculated heavy particle momentum
   fQv1=0;                         //
+  fQv1_nocorr=0;                         //
+  fEB2=0; //Calculated heavy particle energy
+  fPB2=0; //Calculated heavy particle momentum
   fQv2=0;                         //
+  fQv2_nocorr=0;                         //
   fThetacm1=0;                         //
   fThetacm2=0;                         //
-  fEB=0; //Beam energy           //
 
 
 }
@@ -84,16 +90,20 @@ Int_t TEvent::Clear(){
   	fPb1y = sqrt(-1.);
   	fPb1xcm = sqrt(-1.);
 
-	fLP=0; //Light particle energy //
-	fHP=0; //Heavy particle energy //
-	fQv1=0;                         //
-	fQv1_nocorr=0;                         //
-	fQv2=0;                         //
-	fQv2_nocorr=0;                         //
-	fThetacm1=0;                         //
-	fThetacm2=0;                         //
-	fThetaD=0;                         //
-	fEB=0; //Beam energy           //
+	fLP=0; //Light particle energy
+	fHP=0; //Heavy particle energy
+	fEB=0; //Measured heavy particle energy
+	fEB1=0; //Calculated heavy particle energy
+	fPB1=0; //Calculated heavy particle momentum
+	fQv1=0;
+	fQv1_nocorr=0;
+	fEB2=0; //Calculated heavy particle energy
+	fPB2=0; //Calculated heavy particle momentum
+	fQv2=0;
+	fQv2_nocorr=0;
+	fThetacm1=0;
+	fThetacm2=0;
+	fThetaD=0;
 	// fPart.Clear();
 return 1;
 }

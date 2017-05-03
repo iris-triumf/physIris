@@ -9,6 +9,8 @@
 #pragma link C++ class IDet+;
 #pragma link C++ class ITdc+;
 #pragma link C++ class IScaler+;
+#pragma link C++ class PTrack+;
+//#pragma link C++ class nucleus+;
 
 #endif
 

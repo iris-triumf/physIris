@@ -20,6 +20,8 @@ class runDep : public TObject {
 		std::string na;
 		std::string nB;
 		std::string nb;
+		std::string runPar;
+		Bool_t bool_runPar;
 
 		void setRunDepPar(std::string);
 		void Print();

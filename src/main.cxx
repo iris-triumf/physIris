@@ -32,15 +32,37 @@ double GetTimeSec() {
 	return tv.tv_sec + 0.000001*tv.tv_usec;
 }
 
+std::string GetBinDir()
+{
+	std::string path;
+	char buff[256];
+    ssize_t len = ::readlink("/proc/self/exe", buff, sizeof(buff)-1);
+	if (len != -1) {
+			buff[len] = '\0';
+		path = std::string(buff);
+	}
+	std::string BinDir = path.substr(0,path.rfind('/'));
+	return BinDir;
+}
+
 int Process(std::string dirname)
 {
 	printf("---- BEGIN PROCESSING ---- \n");
-	printf("Writing data to %s.\n",gOutputFile.data());
-	HandleBOR_PHYSICS(gFileDir, gCalibFile, gOutputFile); 
-	HandlePHYSICS();
-	HandleEOR_PHYSICS();
-  	printf("End.\n");
-  	return 0;
+	std::string gBinDir = GetBinDir();
+	if(gBinDir.empty()){
+		printf("Can't determine path of executable");
+		return -1;
+	}
+	else{
+		printf("Running %s.\n",gBinDir.data());
+		printf("Writing data to %s.\n",gOutputFile.data());
+		HandleBOR_PHYSICS(gBinDir, gFileDir, gCalibFile, gOutputFile); 
+		printf("Running %s.\n",gBinDir.data());
+		HandlePHYSICS();
+		HandleEOR_PHYSICS();
+  		printf("End.\n");
+  		return 0;
+	}
 }
 
 void help()

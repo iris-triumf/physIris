@@ -22,10 +22,12 @@ class IDet : public TObject {
 		Int_t TCsI1Mul;
 		std::vector<Int_t> TCsI1Channel;
 		std::vector<Double_t> TCsI1Energy;
+		std::vector<Double_t> TCsI1Phi;
 		std::vector<Double_t> TCsI1ADC;
 		Int_t TCsI2Mul;
 		std::vector<Int_t> TCsI2Channel;
 		std::vector<Double_t> TCsI2Energy;
+		std::vector<Double_t> TCsI2Phi;
 		std::vector<Double_t> TCsI2ADC;
 		
 		Double_t TYdCsI1ETot;
@@ -62,9 +64,11 @@ class IDet : public TObject {
 		std::vector<Int_t> TSd2sADC;
 		
 		Double_t TSdETot;
-		std::vector<Double_t> TSdTheta;
+		std::vector<Double_t> TSd1Theta;
+		std::vector<Double_t> TSd2Theta;
 		Double_t TSdThetaCM;
-		std::vector<Double_t> TSdPhi;
+		std::vector<Double_t> TSd1Phi;
+		std::vector<Double_t> TSd2Phi;
 
 //		Double_t TQv1; // Q-value from S3
 //		Double_t TQv2; // Q-value from S3

@@ -62,6 +62,14 @@ void CalibPHYSICS::ReadFilenames(char* line)
 		nameGate = strval;
 		boolNGate = kTRUE;
 	}
+	if (strcmp(line,"SDGATEFILE")==0){
+		fileSdGate += strval;
+		boolFSdGate = kTRUE;
+	}
+	if (strcmp(line,"SDGATENAME")==0){
+		nameSdGate = strval;
+		boolNSdGate = kTRUE;
+	}
 	if (strcmp(line,"ELOSS")==0){
 		fileELoss += strval;
 		boolELoss = kTRUE;
@@ -160,6 +168,10 @@ void CalibPHYSICS::Print(){
 	else	printf("No YY1/CsI gate file specified.\n");
 	if(boolNGate)	printf("YY1/CsI gate name: %s\n",nameGate.data());
 	else	printf("No YY1/CsI gate name specified.\n");
+	if(boolFSdGate)	printf("S3 gate in %s\n",fileSdGate.data());
+	else	printf("No S3 gate file specified.\n");
+	if(boolNSdGate)	printf("S3 gate name: %s\n",nameSdGate.data());
+	else	printf("No S3 gate name specified.\n");
 	if(boolRunDepPar)	printf("Run dependant parameters: %s\n",fileRunDepPar.data());
 	else	printf("No run dependant parameters specified.\n");
 	if(boolICGates)	printf("Using ionization chamber for incoming ID.\n");

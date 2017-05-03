@@ -8,6 +8,7 @@ void runDep::setRunDepPar(std::string filename)
 {
 	ICmin=0;
 	ICmax=0;
+	bool_runPar = kFALSE;
 	
 	char buffer[256];
 	FILE * parFile;
@@ -52,6 +53,10 @@ void runDep::setRunDepPar(std::string filename)
 		if (strcmp(buffer,"a")==0)	  	na = strval;
 		if (strcmp(buffer,"B")==0)	  	nB = strval;
 		if (strcmp(buffer,"b")==0)	  	nb = strval;
+		if (strcmp(buffer,"RUNPAR")==0){  	
+			runPar = strval;
+			bool_runPar = kTRUE;
+		}
 	}
 	fclose(parFile);
 }
@@ -62,4 +67,6 @@ void runDep::Print()
 	printf("Reaction %s(%s,%s)%s\n",nA.data(),na.data(),nb.data(),nB.data());
 	printf("Energy: %f (%f at center of target)\n",EBAC,energy);
 	printf("IC energy gate: min=%f\tmax=%f\n\n",ICmin,ICmax);
+	if(bool_runPar==kTRUE) printf("Run dependant energy and target thickness from %s\n",runPar.data());
+	else printf("No run dependant energy and target thickness.\n");
 }

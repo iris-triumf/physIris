@@ -11,9 +11,8 @@
 #include <TChain.h>
 #include <TMath.h>
 #include "TCutG.h"
-//#include "HandleMesytec.h"
+
 #include "HandlePHYSICS.h"
-//#include "Globals.h"
 #include "eloss.h"
 #include "nucleus.h"
 #include "runDepPar.h"
@@ -32,11 +31,16 @@ CalibPHYSICS calPhys;
 geometry geoP;
 Graphsdedx dedx_i, dedx_l, dedx_h;
 
-float ICELossCorr;
+float ICELossCorr=1.; // has to be implemented!
 
 const int Nchannels = 24;
 const int binlimit = 1900;
- 	
+ 		
+const Double_t ICLength=22.9*0.062; //cm*mg/cm^3 at 19.5 Torr
+const Double_t ICWindow1=0.03*3.44*0.1; //mu*g/cm^3*0.1
+const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
+
+
 Double_t eATgt[100], eAIso[100], eAWndw[100], eAAg[100];	
 Double_t dedxATgt[100], dedxAIso[100], dedxAWndw[100], dedxAAg[100];	
 Double_t eBSi[100], eBTgt[100], eBSiO2[100], eBB[100], eBP[100], eBAl[100], eBMy[100], eBCsI[100];	
@@ -76,6 +80,10 @@ Double_t thetaR=sqrt(-1.);
 Double_t thetaD=sqrt(-1.);
 Double_t Eb1=sqrt(-1.);
 Double_t Eb2=sqrt(-1.);
+Double_t EB1=sqrt(-1.);
+Double_t EB2=sqrt(-1.);
+Double_t PB1=sqrt(-1.);
+Double_t PB2=sqrt(-1.);
 Double_t ECsI1=sqrt(-1.);
 Double_t ECsI2=sqrt(-1.);
 Double_t EYY1=sqrt(-1.);
@@ -88,7 +96,8 @@ Double_t Pb2y=sqrt(-1.);
 Double_t Pb1xcm=sqrt(-1.);
 Double_t Pb2xcm=sqrt(-1.);
 	
-TCutG *gate;
+TCutG *YdCsIGate = NULL;
+TCutG *SdGate = NULL;
 
 IDet detec; // calibrated variables from detectors, to be passed to HandlePhysics
 IDet *det = &detec;
@@ -96,6 +105,13 @@ ITdc timeArray;
 ITdc *tdc = &timeArray;
 IScaler scal;
 IScaler *pscaler = &scal;
+PTrack lP;
+PTrack *plP = &lP;
+PTrack hP;
+PTrack *phP = &hP;
+
+UInt_t Run, Event;
+UInt_t prevRun =0;
 
 TChain* createChain(std::vector<Int_t> runs, std::string Directory)
 {
@@ -108,7 +124,7 @@ TChain* createChain(std::vector<Int_t> runs, std::string Directory)
 		std::string filename;
 		std::string runNo;
 		if(runs.at(i)>99999) runNo = Form("%d",runs.at(i));
-		else runNo = Form("0%d",runs.at(i));
+		else runNo = Form("0%04d",runs.at(i));
     	filename = Directory + "/tree" + runNo + ".root";
     	
 		int addReturn = ch->AddFile(filename.data());
@@ -124,8 +140,76 @@ TChain* createChain(std::vector<Int_t> runs, std::string Directory)
   	return ch;
 }
 
+void getRunPar(Int_t runNo)
+{
+	FILE *pFile;
+	int i = 0;
+	double a,b;
+	int run_for_corr = 0;
+	
+	pFile = fopen(runDepPar.runPar.data(), "r");	
+	if (pFile == NULL) {
+		printf("No run dependent energy and target thickness. Skipping correction.\n");
+	}
+	else  {
+		printf("Reading config file '%s'\n",runDepPar.runPar.data());
+	
+		while (!feof(pFile)){
+			fscanf(pFile,"%d\t%lf\t%lf\n",&i,&a,&b);
+			//printf("%d\t%lf\t%lf\n",i,a,b);
+			if(i==runNo){ 
+				run_for_corr = i;
+				runDepPar.energy = a;
+			   	geoP.TargetThickness = b;	
+			}
+		}
+		fclose (pFile);	
+	
+		if(run_for_corr==0){ 
+			printf("Run %d not in list. No correction applied!\n",runNo);
+		}
+		else{
+			printf("Run: %d\tBeam energy: %f\tTarget thickness: %f\n",run_for_corr,runDepPar.energy,geoP.TargetThickness);
+		}
+	}
+}
+
+void calculateBeamEnergy(Double_t E)
+{
+	runDepPar.EBAC = E;
+	printf("New Beam Energy: %f\n" ,E);
+	Double_t temp_E = E;
+	E = E-eloss(E,ICWindow1,eAWndw,dedxAWndw);  
+	E = E-eloss(E,ICLength,eAIso,dedxAIso)/ICELossCorr;  
+	E = E-eloss(E,ICWindow2,eAWndw,dedxAWndw);  
+	printf("Energy loss in IC (including windows): %.3f MeV\n" ,temp_E-E);
+
+	temp_E = E;
+	E = runDepPar.energy-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
+	printf("Energy loss in silver foil: %.3f MeV\n" ,temp_E-E);
+	printf("Energy after silver foil: %.3f MeV\n",E);
+
+	temp_E = E;
+	E = E-eloss(E,geoP.TargetThickness/2.,eATgt,dedxATgt);  
+	printf("Energy loss in half target: %.3f MeV\n" ,temp_E-E);
+	printf("Beam energy in center of target: %.3f MeV\n" ,E);
+
+	runDepPar.energy = E;
+	runDepPar.momentum = sqrt(runDepPar.energy*runDepPar.energy+2.*runDepPar.energy*beam.mass);//beam momentum
+	runDepPar.beta = runDepPar.momentum/(runDepPar.energy + beam.mass + target.mass);
+	runDepPar.gamma = 1./sqrt(1.-runDepPar.beta*runDepPar.beta);
+
+	EBAC = runDepPar.EBAC;
+	EBeam= runDepPar.energy;
+	PA = runDepPar.momentum;//beam momentum
+	betaCM = runDepPar.beta;
+	gammaCM = runDepPar.gamma;
+	printf("Beam momentum in center of target: %.3f MeV\n",PA);
+	printf("Beta: %f\tGamma: %f\n",betaCM,gammaCM);
+}
+
 //---------------------------------------------------------------------------------
-void HandleBOR_PHYSICS(std::string Directory, std::string CalibFile, std::string OutputFile)
+void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string CalibFile, std::string OutputFile)
 {
   	printf("In HandleBOR_PHYSICS...\n");	
 	if(CalibFile=="") printf("No calibration file specified!\n\n");
@@ -153,25 +237,89 @@ void HandleBOR_PHYSICS(std::string Directory, std::string CalibFile, std::string
  	}
 
 	input_chain = createChain(runs,Directory);
-	input_chain->SetBranchAddress("det",&det);
-	input_chain->SetBranchAddress("scaler",&pscaler);
+	
+	// deactivate some branches, only relevant for simulated data from simIris
+	if(input_chain->GetListOfBranches()->FindObject("Evnt")) input_chain->SetBranchStatus("Evnt",0); 
+	if(input_chain->GetListOfBranches()->FindObject("beamE")) input_chain->SetBranchStatus("beamE",0); 
+	if(input_chain->GetListOfBranches()->FindObject("beamBeta")) input_chain->SetBranchStatus("beamBeta",0); 
+	if(input_chain->GetListOfBranches()->FindObject("beamGamma")) input_chain->SetBranchStatus("beamGamma",0); 
+	if(input_chain->GetListOfBranches()->FindObject("beamEcm")) input_chain->SetBranchStatus("beamEcm",0); 
+	if(input_chain->GetListOfBranches()->FindObject("reacX")) input_chain->SetBranchStatus("reacX",0); 
+	if(input_chain->GetListOfBranches()->FindObject("reacY")) input_chain->SetBranchStatus("reacY",0); 
+	if(input_chain->GetListOfBranches()->FindObject("reacZ")) input_chain->SetBranchStatus("reacZ",0); 
+	if(input_chain->GetListOfBranches()->FindObject("hPdec")) input_chain->SetBranchStatus("hPdec*",0); 
+	if(input_chain->GetListOfBranches()->FindObject("lPdec1")) input_chain->SetBranchStatus("lPdec1*",0); 
+	if(input_chain->GetListOfBranches()->FindObject("lPdec2")) input_chain->SetBranchStatus("lPdec2*",0); 
+	if(input_chain->GetListOfBranches()->FindObject("wght")) input_chain->SetBranchStatus("wght",0); 
+	if(input_chain->GetListOfBranches()->FindObject("Qgen")) input_chain->SetBranchStatus("Qgen",0); 
+	if(input_chain->GetListOfBranches()->FindObject("qdet")) input_chain->SetBranchStatus("Qdet",0); 
+	if(input_chain->GetListOfBranches()->FindObject("ICdE")) input_chain->SetBranchStatus("ICdE",0);
+	if(input_chain->GetListOfBranches()->FindObject("SSBdE")) input_chain->SetBranchStatus("SSBdE",0);
+	if(input_chain->GetListOfBranches()->FindObject("yd")) input_chain->SetBranchStatus("yd*",0);
+	if(input_chain->GetListOfBranches()->FindObject("csi")) input_chain->SetBranchStatus("csi*",0);
+	if(input_chain->GetListOfBranches()->FindObject("sd1")) input_chain->SetBranchStatus("sd1*",0);
+	if(input_chain->GetListOfBranches()->FindObject("sd2")) input_chain->SetBranchStatus("sd2*",0);
+	//***************************************************************************
+	
+	if(input_chain->GetListOfBranches()->FindObject("det")){
+	   	input_chain->SetBranchAddress("det",&det);
+	}
+	if(input_chain->GetListOfBranches()->FindObject("tdc")){ 
+		input_chain->SetBranchAddress("tdc",&tdc);
+	}
+	if(input_chain->GetListOfBranches()->FindObject("scaler")){
+	   	input_chain->SetBranchAddress("scaler",&pscaler);
+	}
+	if(input_chain->GetListOfBranches()->FindObject("lP")){
+	   	input_chain->SetBranchAddress("lP",&plP);
+	}
+	if(input_chain->GetListOfBranches()->FindObject("hP")){
+	   	input_chain->SetBranchAddress("hP",&phP);
+	}		
+	if(input_chain->GetListOfBranches()->FindObject("Run")){
+	   	input_chain->SetBranchAddress("Run",&Run);
+	}
+	if(input_chain->GetListOfBranches()->FindObject("Event")){
+	   	input_chain->SetBranchAddress("Event",&Event);
+	}
 	treeFile = new TFile(OutputFile.data(),"RECREATE");
 	tree=input_chain->CloneTree(0);	
 	IrisEvent = new TEvent();
  	tree->Branch("IrisEvent","TEvent",&IrisEvent,32000,99);
 
-	TFile *fgates = new TFile(calPhys.fileGate.data());
-   	printf("opened file %s\n",calPhys.fileGate.data());
-  
-	gate = (TCutG*)fgates->FindObjectAny(calPhys.nameGate.data());
-  	if(!gate) printf("No gate.\n");  
-	else printf("Grabbed gate %s.\n",calPhys.nameGate.data());
+	if(calPhys.boolFGate==kTRUE){
+		TFile *fYdCsIGates = new TFile(calPhys.fileGate.data());
+   		printf("opened file %s\n",calPhys.fileGate.data());
+   
+		if(calPhys.boolNGate==kTRUE){
+			YdCsIGate = (TCutG*)fYdCsIGates->FindObjectAny(calPhys.nameGate.data());
+  			if(!YdCsIGate) printf("No Yd/CsI gate.\n");  
+			else printf("Grabbed Yd/CsI gate %s.\n",calPhys.nameGate.data());
+		}
+		else printf("No Yd/CsI gate.\n"); 
+	}
+	else printf("No Yd/CsI gate.\n");  
+	
+	if(calPhys.boolFSdGate==kTRUE){
+		TFile *fSdGates = new TFile(calPhys.fileSdGate.data());
+   		printf("opened file %s\n",calPhys.fileSdGate.data());
+   
+		if(calPhys.boolNSdGate==kTRUE){
+			SdGate = (TCutG*)fSdGates->FindObjectAny(calPhys.nameSdGate.data());
+  			if(!SdGate) printf("No S3 gate.\n");  
+			else printf("Grabbed S3 gate %s.\n",calPhys.nameSdGate.data());
+		}
+		else printf("No S3 gate.\n"); 
+	}
+	else printf("No S3 gate.\n");  
 	
 	geoP.ReadGeometry(calPhys.fileGeometry.data());
 	geoP.Print();
 
-	ICELossCorr = 1.;	
-//	// Time dependent correction of IC energy loss 
+//	ICELossCorr = 1.;	
+
+
+	//	// Time dependent correction of IC energy loss 
 //	FILE *pFile;
 //	int Chan = 0;
 //	double a,b;
@@ -206,12 +354,11 @@ void HandleBOR_PHYSICS(std::string Directory, std::string CalibFile, std::string
 		runDepPar.setRunDepPar(calPhys.fileRunDepPar);// setting run dependent parameters.
 		runDepPar.Print();
 
-		beam.getInfo(runDepPar.nA);
-		target.getInfo(runDepPar.na);
-		hej.getInfo(runDepPar.nB);
-		lej.getInfo(runDepPar.nb);
+		beam.getInfo(BinPath,runDepPar.nA);
+		target.getInfo(BinPath,runDepPar.na);
+		hej.getInfo(BinPath,runDepPar.nB);
+		lej.getInfo(BinPath,runDepPar.nb);
 
-		EBAC = runDepPar.EBAC;
 		mA = beam.mass; //Beam mass //Reassigned in HandleBOR
 		ma = target.mass;
 		mb = lej.mass; //Light ejectile mass
@@ -263,38 +410,12 @@ void HandleBOR_PHYSICS(std::string Directory, std::string CalibFile, std::string
 			if(dedx_h.boolIso==kTRUE) loadELoss(dedx_h.Iso,eAIso,dedxAIso,mB);	
 			if(dedx_h.boolWndw==kTRUE) loadELoss(dedx_h.Wndw,eAWndw,dedxAWndw,mB);	
 		}
-		//Needs to be moved!
-		const Double_t ICLength=22.9*0.062; //cm*mg/cm^3 at 19.5 Torr
-		const Double_t ICWindow1=0.03*3.44*0.1; //mu*g/cm^3*0.1
-		const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
-	
-		Double_t temp_energy = runDepPar.energy;
-		runDepPar.energy = runDepPar.energy-eloss(runDepPar.energy,ICWindow1,eAWndw,dedxAWndw);  
-		runDepPar.energy = runDepPar.energy-eloss(runDepPar.energy,ICLength,eAIso,dedxAIso)/ICELossCorr;  
-		runDepPar.energy = runDepPar.energy-eloss(runDepPar.energy,ICWindow2,eAWndw,dedxAWndw);  
-		printf("Energy loss in IC (including windows): %f\n" ,temp_energy-runDepPar.energy);
 
-		temp_energy = runDepPar.energy;
-		runDepPar.energy = runDepPar.energy-eloss(runDepPar.energy,geoP.FoilThickness,eAAg,dedxAAg);  
-		printf("Energy loss in silver foil: %f\n" ,temp_energy-runDepPar.energy);
-		printf("Energy after silver foil: %f\n",runDepPar.energy);
-
-		temp_energy = runDepPar.energy;
-		runDepPar.energy = runDepPar.energy-eloss(runDepPar.energy,geoP.TargetThickness/2.,eATgt,dedxATgt);  
-		printf("Energy loss in half target: %f\n" ,temp_energy-runDepPar.energy);
-
-		runDepPar.momentum = sqrt(runDepPar.energy*runDepPar.energy+2.*runDepPar.energy*beam.mass);//beam momentum
-		runDepPar.beta = runDepPar.momentum/(runDepPar.energy + beam.mass + target.mass);
-		runDepPar.gamma = 1./sqrt(1.-runDepPar.beta*runDepPar.beta);
-
-		EBeam= runDepPar.energy;
-		PA = runDepPar.momentum;//beam momentum
-		betaCM = runDepPar.beta;
-		gammaCM = runDepPar.gamma;
-	
-		printf("Resulting energy: %f\n",EBeam);
-		printf("Beam momentum: %f\n",PA);
-		printf("Beam beta: %f\tBeam gamma: %f\n",betaCM,gammaCM);
+		// Initialize runPar with values from first run in chain	
+		if(runDepPar.bool_runPar==kTRUE) getRunPar(runs.at(0));
+		prevRun=runs.at(0);
+		calculateBeamEnergy(runDepPar.energy);
+		
 		printf("MBeam: %f\t MFoil: %f\t kBF: %f\n",beam.mass,MFoil,kBF);
 		printf("beam mass: %f MeV (%f)\ttarget mass: %f MeV (%f)\n",mA,mA/931.494061,ma,ma/931.494061);
 		printf("heavy ejectile mass: %f MeV (%f)\tlight ejectile mass: %f MeV (%f)\n",mB,mB/931.494061,mb,mb/931.494061);
@@ -320,9 +441,19 @@ void HandlePHYSICS()
 		if((i%100)==0) printf("Processing event %d\r",i);
 		
 		if (det->TICEnergy.size()==0) continue; 
-		if (det->TICEnergy.at(0)<runDepPar.ICmin || det->TICEnergy.at(0)>runDepPar.ICmax) continue; 
-		if (det->TYdEnergy.size()==0||det->TCsI1Energy.size()==0) continue; 
-		if (gate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; 
+		if (det->TICEnergy.at(0)<runDepPar.ICmin || det->TICEnergy.at(0)>runDepPar.ICmax) continue; // event in IC YdCsIGate?
+		if (YdCsIGate!=NULL&&(det->TYdEnergy.size()==0||det->TCsI1Energy.size()==0||det->TCsI2Energy.size()==0)) continue; // event has YY1 and CsI hit?
+		if (YdCsIGate!=NULL&&det->TCsI1Channel[0]-det->TCsI2Channel.at(0)!=0) continue; // CsI1 and CsI2 channels the same?
+		if (YdCsIGate!=NULL&&int(det->TCsI1Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
+		if (YdCsIGate!=NULL&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
+		if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
+		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
+		if(runDepPar.bool_runPar == kTRUE && Run != prevRun){
+			getRunPar(Run);
+			calculateBeamEnergy(runDepPar.energy);
+			prevRun = Run;
+		}
+		
 		IrisEvent->fEBAC = EBAC;
 		IrisEvent->fmA = mA;
 		IrisEvent->fma = ma;
@@ -335,11 +466,11 @@ void HandlePHYSICS()
 		IrisEvent->fPA = PA;
  		
 		//adding dead layer energy losses
-		//Sd2 ring side
-		if(det->TSd1rEnergy.size()>0 && det->TSd2rEnergy.size()>0){
-			if(det->TSd1rEnergy.at(0)>0. && det->TSd2rEnergy.at(0)>0.){
-				cosTheta = cos(TMath::DegToRad()* (det->TSdTheta.at(0)));
-				energy = det->TSd2rEnergy.at(0);
+		if(det->TSd1rEnergy.size()>0 && det->TSd2sEnergy.size()>0){
+			if(det->TSd1rEnergy.at(0)>0. && det->TSd2sEnergy.at(0)>0.){
+				cosTheta = cos(TMath::DegToRad()* (det->TSd1Theta.at(0)));
+				//Sd2 ring side
+				energy = det->TSd2sEnergy.at(0);
 				energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
 				energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
 				energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
@@ -357,7 +488,7 @@ void HandlePHYSICS()
 		
 			PResid = sqrt(2.*det->TSdETot*mA);     //Beam momentum in MeV/c
 			A = kBF-1.;                              //Quadratic equation parameters
-		    B = 2.0*PResid* cos(TMath::DegToRad()*det->TSdTheta.at(0));
+		    B = 2.0*PResid* cos(TMath::DegToRad()*det->TSd1Theta.at(0));
 		    C = -1.*(kBF+1)*PResid*PResid; 
 		    if (A!=0)    PBeam = (sqrt(B*B-4.*A*C)-B)/(2*A);
 		  	IrisEvent->fPBeam = PBeam;
@@ -367,22 +498,22 @@ void HandlePHYSICS()
 		  	IrisEvent->fC = C;
 		  	//to calculate residue energy from beam
 		    
-			IrisEvent->fEB = PBeam*PBeam/(2.*mA);
+			//IrisEvent->fEB = PBeam*PBeam/(2.*mA);
 		   
 		    IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
-		    det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSdTheta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSdTheta.at(0)))));// check if this is still correct for H2 target tk
+		    det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
 		}
 
-		if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron gate
-		  	thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
-		  	// thetaR =( atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+1)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance)
-			//	   	+ atan((geoP.YdInnerRadius+((det->TYdRing.at(0))*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance) )/2.;
+		if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
+		  	// thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
+		  	thetaR =( atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+1)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance)
+				   	+ atan((geoP.YdInnerRadius+((det->TYdRing.at(0))*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance) )/2.;
   //thetaR =( atan((Yd1r+((det->TYdRing+1)*(Yd2r-Yd1r)/16))/YdDistance) + atan((Yd1r+((det->TYdRing)*(Yd2r-Yd1r)/16))/YdDistance) )/2.;
 		  	thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaD = thetaD;
 			EYY1 = det->TYdEnergy.at(0);
 		}	
-		if (det->TCsI1Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron gate
+		if (det->TCsI1Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
 		
 		    ECsI1= det->TCsI1Energy.at(0);
 		
@@ -401,17 +532,23 @@ void HandlePHYSICS()
 			Pb1 = sqrt(Eb1*Eb1+2.*Eb1*mb);
 			Pb1y = Pb1*sin(thetaR);
 			Pb1xcm = gammaCM*betaCM*(Eb1+mb)- gammaCM*Pb1*cos(thetaR);
-		 	Q1 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1)+2.*PA*Pb1*cos(thetaR)+2.*(EBeam+mA+ma-Eb1-mb)*ma);  //Alisher's equation 
-			Double_t Eb1_nocorr = det->TYdEnergy.at(0)+det->TCsI1Energy.at(0);
-			Double_t Pb1_nocorr = sqrt(Eb1_nocorr*Eb1_nocorr+2.*Eb1_nocorr*mb);
-		 	Double_t Q1_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1_nocorr)+2.*PA*Pb1_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb1_nocorr-mb)*ma);// without dedx corr
+			EB1 = EBeam+mA+ma-Eb1-mb;
+			PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
+			//PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
+		 	//Q1 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1)+2.*PA*Pb1*cos(thetaR)+2.*(EBeam+mA+ma-Eb1-mb)*ma);  //Alisher's equation 
+  			Q1 = mA+ma-mb-sqrt(EB1*EB1-PB1*PB1); //Equivalent to the previous equation
+			// Double_t Eb1_nocorr = det->TYdEnergy.at(0)+det->TCsI1Energy.at(0);
+			// Double_t Pb1_nocorr = sqrt(Eb1_nocorr*Eb1_nocorr+2.*Eb1_nocorr*mb);
+		 	// Double_t Q1_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1_nocorr)+2.*PA*Pb1_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb1_nocorr-mb)*ma);// without dedx corr
 		  	IrisEvent->fECsI1 = ECsI1;
 		  	IrisEvent->fEb1 = Eb1;
 		  	IrisEvent->fPb1 = Pb1;
+		  	IrisEvent->fEB1 = EB1;
+		  	IrisEvent->fPB1 = PB1;
 		  	IrisEvent->fPb1y = Pb1y;
 		  	IrisEvent->fPb1xcm = Pb1xcm;
 		  	IrisEvent->fQv1 = Q1;
-		  	IrisEvent->fQv1_nocorr = Q1_nocorr;
+		  	// IrisEvent->fQv1_nocorr = Q1_nocorr;
 			thetaCM1 = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
 			thetaCM1 = (thetaCM1<0) ? thetaCM1+180. : thetaCM1;
 			IrisEvent->fThetacm1 = thetaCM1;
@@ -439,13 +576,22 @@ void HandlePHYSICS()
 			Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
 			Pb2y = Pb2*sin(thetaR);
 			Pb2xcm = gammaCM*betaCM*(Eb2+mb)- gammaCM*Pb2*cos(thetaR);
-		 	Q2 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2)+2.*PA*Pb2*cos(thetaR)+2.*(EBeam+mA+ma-Eb2-mb)*ma);  //Alisher's equation 
-			Double_t Eb2_nocorr = det->TYdEnergy.at(0)+det->TCsI2Energy.at(0);
-			Double_t Pb2_nocorr = sqrt(Eb2_nocorr*Eb2_nocorr+2.*Eb2_nocorr*mb);
-		 	Double_t Q2_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2_nocorr)+2.*PA*Pb2_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb2_nocorr-mb)*ma);// without dedx corr
+			EB2 = EBeam+mA+ma-Eb2-mb;
+			PB2 = sqrt(PA*PA+Pb2*Pb2-2.*PA*Pb2*cos(thetaR));
+		 	//Q2 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2)+2.*PA*Pb2*cos(thetaR)+2.*(EBeam+mA+ma-Eb2-mb)*ma);  //Alisher's equation 
+  			Q2 = mA+ma-mb-sqrt(EB2*EB2-PB2*PB2); //Equivalent to the previous equation
+			// Double_t Eb2_nocorr = det->TYdEnergy.at(0)+det->TCsI2Energy.at(0);
+			// Double_t Pb2_nocorr = sqrt(Eb2_nocorr*Eb2_nocorr+2.*Eb2_nocorr*mb);
+		 	// Double_t Q2_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2_nocorr)+2.*PA*Pb2_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb2_nocorr-mb)*ma);// without dedx corr
 		  	IrisEvent->fECsI2 = ECsI2;
-		  	IrisEvent->fQv2 = Q2;
-		  	IrisEvent->fQv2_nocorr = Q2_nocorr;
+		  	IrisEvent->fEb2 = Eb2;
+		  	IrisEvent->fPb2 = Pb2;
+		  	IrisEvent->fEB2 = EB2;
+		  	IrisEvent->fPB2 = PB2;
+		  	IrisEvent->fPb2y = Pb2y;
+		  	IrisEvent->fPb2xcm = Pb2xcm;
+			IrisEvent->fQv2 = Q2;
+		  	// IrisEvent->fQv2_nocorr = Q2_nocorr;
 			thetaCM2 = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
 			thetaCM2 = (thetaCM2<0) ? thetaCM2+180. : thetaCM2;
 			IrisEvent->fThetacm2 = thetaCM2;
