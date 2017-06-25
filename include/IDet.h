@@ -69,13 +69,27 @@ class IDet : public TObject {
 		Double_t TSdThetaCM;
 		std::vector<Double_t> TSd1Phi;
 		std::vector<Double_t> TSd2Phi;
-
-//		Double_t TQv1; // Q-value from S3
-//		Double_t TQv2; // Q-value from S3
-//		Double_t QValue1; //Q-value from YY1 and CsI1
-//		Double_t QValue2; //Q-value from YY1 and CsI2
-//		Double_t QValue; //Q-value from YY1 and CsI2
-//		Double_t TBE; //Beam energy
+		
+		Int_t TYuMul;
+		std::vector<Int_t> TYuChannel;
+		std::vector<Double_t> TYuEnergy;
+		std::vector<Int_t> TYuADC;
+		std::vector<Int_t> TYuNo;
+		std::vector<Int_t> TYuRing;
+		std::vector<Double_t> TYuTheta;// Yd theta angle
+		
+		Int_t TSurMul;
+		std::vector<Int_t> TSurChannel;
+		std::vector<Double_t> TSurEnergy;
+		std::vector<Int_t> TSurADC;
+		Double_t TSurEnergyCal;
+		
+		Int_t TSusMul;
+		std::vector<Int_t> TSusChannel;
+		std::vector<Double_t> TSusEnergy;
+		std::vector<Int_t> TSusADC;
+		std::vector<Double_t> TSuTheta;
+		std::vector<Double_t> TSuPhi;
 	
 	void Clear();
 	ClassDef(IDet,1)

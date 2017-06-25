@@ -60,11 +60,20 @@ void IDet::Clear()
   	TSd2Theta.clear();
   	TSd1Phi.clear();
   	TSd2Phi.clear();
-//	TQv1=0; // Q-value  
-//	TQv2=0; // Q-value
-// 	QValue1=sqrt(-1.);//Not a number (nan) AS
-// 	QValue2=sqrt(-1.);//                                                                                
-// 	QValue=sqrt(-1.);//                                                                                
-// 	TBE=0; //Beam energy                                                                             
+  	TYdMul=0;  
+	TYdADC.clear();
+	TYdEnergy.clear();
+  	TYdTheta.clear();// Yd theta angle                                                                       
+	TYdChannel.clear();
+	TYdNo.clear();
+	TYdRing.clear();
+	TSurEnergy.clear();
+	TSurChannel.clear();
+  	TSurADC.clear();
+	TSusEnergy.clear();
+	TSusChannel.clear();
+  	TSusADC.clear();
+  	TSuTheta.clear();
+  	TSuPhi.clear();
 }
 
