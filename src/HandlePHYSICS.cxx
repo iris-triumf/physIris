@@ -95,6 +95,9 @@ Double_t Pb1y=sqrt(-1.);
 Double_t Pb2y=sqrt(-1.);
 Double_t Pb1xcm=sqrt(-1.);
 Double_t Pb2xcm=sqrt(-1.);
+
+Int_t CCsI1=-1;
+Int_t CCsI2=-1;
 	
 TCutG *YdCsIGate = NULL;
 TCutG *SdGate = NULL;
@@ -179,13 +182,16 @@ void calculateBeamEnergy(Double_t E)
 	runDepPar.EBAC = E;
 	printf("New Beam Energy: %f\n" ,E);
 	Double_t temp_E = E;
-	E = E-eloss(E,ICWindow1,eAWndw,dedxAWndw);  
-	E = E-eloss(E,ICLength,eAIso,dedxAIso)/ICELossCorr;  
-	E = E-eloss(E,ICWindow2,eAWndw,dedxAWndw);  
-	printf("Energy loss in IC (including windows): %.3f MeV\n" ,temp_E-E);
+	if(calPhys.boolIC==kTRUE){
+		E = E-eloss(E,ICWindow1,eAWndw,dedxAWndw);  
+		E = E-eloss(E,ICLength,eAIso,dedxAIso)/ICELossCorr;  
+		E = E-eloss(E,ICWindow2,eAWndw,dedxAWndw);  
+		printf("Energy loss in IC (including windows): %.3f MeV\n" ,temp_E-E);
 
-	temp_E = E;
-	E = runDepPar.energy-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
+		temp_E = E;
+	}
+	if(geoP.FoilThickness>0.) E = runDepPar.energy-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
+	else E = temp_E;
 	printf("Energy loss in silver foil: %.3f MeV\n" ,temp_E-E);
 	printf("Energy after silver foil: %.3f MeV\n",E);
 
@@ -401,7 +407,7 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			dedx_h.Load(calPhys.fileHdedx);
 			dedx_h.Print();
 			if(dedx_h.boolAg==kTRUE) loadELoss(dedx_h.Ag,eAAg,dedxAAg,mA);	
-			if(dedx_h.boolTgt==kTRUE) loadELoss(dedx_h.Tgt,eATgt,dedxATgt,mA);	
+			if(dedx_h.boolTgt==kTRUE) loadELoss(dedx_h.Tgt,eBTgt,dedxBTgt,mB);	
 			if(dedx_h.boolSi==kTRUE) loadELoss(dedx_h.Si,eBSi,dedxBSi,mB);	
 			if(dedx_h.boolAl==kTRUE) loadELoss(dedx_h.Al,eBAl,dedxBAl,mB);	
 			if(dedx_h.boolB==kTRUE) loadELoss(dedx_h.B, eBB,dedxBB,mB);	
@@ -431,173 +437,179 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 
 void HandlePHYSICS()
 {
-	Int_t nEntries = input_chain->GetEntries();
-	printf("%d entries in total.\n",nEntries);
-	for(Int_t i=0; i<nEntries; i++)
-	{
-		Long64_t check_entry = input_chain->LoadTree(i);
-		if(check_entry<0) break;
-		input_chain->GetEntry(i);
-		if((i%100)==0) printf("Processing event %d\r",i);
-		
-		if (det->TICEnergy.size()==0) continue; 
-		if (det->TICEnergy.at(0)<runDepPar.ICmin || det->TICEnergy.at(0)>runDepPar.ICmax) continue; // event in IC YdCsIGate?
-		if (YdCsIGate!=NULL&&(det->TYdEnergy.size()==0||det->TCsI1Energy.size()==0||det->TCsI2Energy.size()==0)) continue; // event has YY1 and CsI hit?
-		if (YdCsIGate!=NULL&&det->TCsI1Channel[0]-det->TCsI2Channel.at(0)!=0) continue; // CsI1 and CsI2 channels the same?
-		if (YdCsIGate!=NULL&&int(det->TCsI1Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
-		if (YdCsIGate!=NULL&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
-		if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
-		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
-		if(runDepPar.bool_runPar == kTRUE && Run != prevRun){
-			getRunPar(Run);
-			calculateBeamEnergy(runDepPar.energy);
-			prevRun = Run;
-		}
-		
-		IrisEvent->fEBAC = EBAC;
-		IrisEvent->fmA = mA;
-		IrisEvent->fma = ma;
-		IrisEvent->fmB = mB;
-		IrisEvent->fmb = mb;
-		IrisEvent->fkBF = kBF;
-		IrisEvent->fEBeam = EBeam;
-		IrisEvent->fbetaCM = betaCM;
-		IrisEvent->fgammaCM = gammaCM;
-		IrisEvent->fPA = PA;
- 		
-		//adding dead layer energy losses
-		if(det->TSd1rEnergy.size()>0 && det->TSd2sEnergy.size()>0){
-			if(det->TSd1rEnergy.at(0)>0. && det->TSd2sEnergy.at(0)>0.){
-				cosTheta = cos(TMath::DegToRad()* (det->TSd1Theta.at(0)));
-				//Sd2 ring side
-				energy = det->TSd2sEnergy.at(0);
-				energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
-				energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
-				energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
-				energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
-				//Sd1 ring side
-				energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
-				energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
-				energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
-				energy = energy + det->TSd1rEnergy.at(0);// energy lost and measured in Sd1
+  Int_t nEntries = input_chain->GetEntries();
+  printf("%d entries in total.\n",nEntries);
+  for(Int_t i=0; i<nEntries; i++)
+    {
+      Long64_t check_entry = input_chain->LoadTree(i);
+      if(check_entry<0) break;
+      input_chain->GetEntry(i);
+      if((i%100)==0) printf("Processing event %d\r",i);
+      
+      if (det->TICEnergy.size()==0) continue; 
+      if (det->TICEnergy.at(0)<runDepPar.ICmin || det->TICEnergy.at(0)>runDepPar.ICmax) continue; // event in IC YdCsIGate?
+      if (YdCsIGate!=NULL&&(det->TYdEnergy.size()==0||det->TCsI1Energy.size()==0||det->TCsI2Energy.size()==0)) continue; // event has YY1 and CsI hit?
+      if (YdCsIGate!=NULL&&det->TCsI1Channel[0]-det->TCsI2Channel.at(0)!=0) continue; // CsI1 and CsI2 channels the same?
+      if (YdCsIGate!=NULL&&int(det->TCsI1Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
+      if (YdCsIGate!=NULL&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
+      if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
+      if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
+      if(runDepPar.bool_runPar == kTRUE && Run != prevRun){
+	getRunPar(Run);
+	calculateBeamEnergy(runDepPar.energy);
+	prevRun = Run;
+      }
 
-				//sector side
-				energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
-				det->TSdETot = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
-			}
-		
-			PResid = sqrt(2.*det->TSdETot*mA);     //Beam momentum in MeV/c
-			A = kBF-1.;                              //Quadratic equation parameters
-		    B = 2.0*PResid* cos(TMath::DegToRad()*det->TSd1Theta.at(0));
-		    C = -1.*(kBF+1)*PResid*PResid; 
-		    if (A!=0)    PBeam = (sqrt(B*B-4.*A*C)-B)/(2*A);
-		  	IrisEvent->fPBeam = PBeam;
-		  	IrisEvent->fPResid = PResid;
-		  	IrisEvent->fA = A;
-		  	IrisEvent->fB = B;
-		  	IrisEvent->fC = C;
-		  	//to calculate residue energy from beam
-		    
-			//IrisEvent->fEB = PBeam*PBeam/(2.*mA);
-		   
-		    IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
-		    det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
-		}
-
-		if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
-		  	// thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
-		  	thetaR =( atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+1)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance)
-				   	+ atan((geoP.YdInnerRadius+((det->TYdRing.at(0))*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance) )/2.;
-  //thetaR =( atan((Yd1r+((det->TYdRing+1)*(Yd2r-Yd1r)/16))/YdDistance) + atan((Yd1r+((det->TYdRing)*(Yd2r-Yd1r)/16))/YdDistance) )/2.;
-		  	thetaD = thetaR*TMath::RadToDeg();
-			IrisEvent->fThetaD = thetaD;
-			EYY1 = det->TYdEnergy.at(0);
-		}	
-		if (det->TCsI1Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
-		
-		    ECsI1= det->TCsI1Energy.at(0);
-		
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar                                                                                  
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*2.70*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al                                                                            
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.82*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus                                                                      
-		
-			Eb1= ECsI1+EYY1; //use measured Yd // change june28
-				
-		    Eb1= Eb1+elossFi(Eb1,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
-		    Eb1= Eb1+elossFi(Eb1,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
-		  	IrisEvent->fEYY1 = Eb1-ECsI1;
-		    Eb1= Eb1+elossFi(Eb1,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
-		
-			det->TYdCsI1ETot = Eb1;
-			Pb1 = sqrt(Eb1*Eb1+2.*Eb1*mb);
-			Pb1y = Pb1*sin(thetaR);
-			Pb1xcm = gammaCM*betaCM*(Eb1+mb)- gammaCM*Pb1*cos(thetaR);
-			EB1 = EBeam+mA+ma-Eb1-mb;
-			PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
-			//PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
-		 	//Q1 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1)+2.*PA*Pb1*cos(thetaR)+2.*(EBeam+mA+ma-Eb1-mb)*ma);  //Alisher's equation 
-  			Q1 = mA+ma-mb-sqrt(EB1*EB1-PB1*PB1); //Equivalent to the previous equation
-			// Double_t Eb1_nocorr = det->TYdEnergy.at(0)+det->TCsI1Energy.at(0);
-			// Double_t Pb1_nocorr = sqrt(Eb1_nocorr*Eb1_nocorr+2.*Eb1_nocorr*mb);
-		 	// Double_t Q1_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1_nocorr)+2.*PA*Pb1_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb1_nocorr-mb)*ma);// without dedx corr
-		  	IrisEvent->fECsI1 = ECsI1;
-		  	IrisEvent->fEb1 = Eb1;
-		  	IrisEvent->fPb1 = Pb1;
-		  	IrisEvent->fEB1 = EB1;
-		  	IrisEvent->fPB1 = PB1;
-		  	IrisEvent->fPb1y = Pb1y;
-		  	IrisEvent->fPb1xcm = Pb1xcm;
-		  	IrisEvent->fQv1 = Q1;
-		  	// IrisEvent->fQv1_nocorr = Q1_nocorr;
-			thetaCM1 = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
-			thetaCM1 = (thetaCM1<0) ? thetaCM1+180. : thetaCM1;
-			IrisEvent->fThetacm1 = thetaCM1;
-		}
-		
-		if (det->TCsI2Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron gate
-		
-		    ECsI2= det->TCsI2Energy.at(0);
-		
-		  	if (mb == target.mass) //proton energy loss in dead layers between YY1 and CsI                                                                                       
-		    {
-		      	ECsI2= ECsI2+elossFi(ECsI2,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar                                                                                  
-		      	ECsI2= ECsI2+elossFi(ECsI2,0.1*2.70*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al                                                                            
-		      	ECsI2= ECsI2+elossFi(ECsI2,0.1*1.82*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus                                                                      
-		    }
-		
-			Eb2= ECsI2+EYY1; //use measured Yd // change june28
-		
-		   	if (mb == target.mass){
-		      	Eb2= Eb2+elossFi(Eb2,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
-		      	Eb2= Eb2+elossFi(Eb2,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
-		    	Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
-			}
-			det->TYdCsI2ETot = Eb2;
-			Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
-			Pb2y = Pb2*sin(thetaR);
-			Pb2xcm = gammaCM*betaCM*(Eb2+mb)- gammaCM*Pb2*cos(thetaR);
-			EB2 = EBeam+mA+ma-Eb2-mb;
-			PB2 = sqrt(PA*PA+Pb2*Pb2-2.*PA*Pb2*cos(thetaR));
-		 	//Q2 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2)+2.*PA*Pb2*cos(thetaR)+2.*(EBeam+mA+ma-Eb2-mb)*ma);  //Alisher's equation 
-  			Q2 = mA+ma-mb-sqrt(EB2*EB2-PB2*PB2); //Equivalent to the previous equation
-			// Double_t Eb2_nocorr = det->TYdEnergy.at(0)+det->TCsI2Energy.at(0);
-			// Double_t Pb2_nocorr = sqrt(Eb2_nocorr*Eb2_nocorr+2.*Eb2_nocorr*mb);
-		 	// Double_t Q2_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2_nocorr)+2.*PA*Pb2_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb2_nocorr-mb)*ma);// without dedx corr
-		  	IrisEvent->fECsI2 = ECsI2;
-		  	IrisEvent->fEb2 = Eb2;
-		  	IrisEvent->fPb2 = Pb2;
-		  	IrisEvent->fEB2 = EB2;
-		  	IrisEvent->fPB2 = PB2;
-		  	IrisEvent->fPb2y = Pb2y;
-		  	IrisEvent->fPb2xcm = Pb2xcm;
-			IrisEvent->fQv2 = Q2;
-		  	// IrisEvent->fQv2_nocorr = Q2_nocorr;
-			thetaCM2 = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
-			thetaCM2 = (thetaCM2<0) ? thetaCM2+180. : thetaCM2;
-			IrisEvent->fThetacm2 = thetaCM2;
-		}
-		tree->Fill();
+      IrisEvent->fEBAC = EBAC;
+      IrisEvent->fmA = mA;
+      IrisEvent->fma = ma;
+      IrisEvent->fmB = mB;
+      IrisEvent->fmb = mb;
+      IrisEvent->fkBF = kBF;
+      IrisEvent->fEBeam = EBeam;
+      IrisEvent->fbetaCM = betaCM;
+      IrisEvent->fgammaCM = gammaCM;
+      IrisEvent->fPA = PA;
+      
+      //adding dead layer energy losses
+      if(det->TSd1rEnergy.size()>0 && det->TSd2sEnergy.size()>0){
+	if(det->TSd1rEnergy.at(0)>0. && det->TSd2sEnergy.at(0)>0.){
+	  cosTheta = cos(TMath::DegToRad()* (det->TSd1Theta.at(0)));
+	  //Sd2 ring side
+	  energy = det->TSd2sEnergy.at(0);
+	  energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
+	  energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
+	  energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
+	  energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
+	  //Sd1 ring side
+	  energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
+	  energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
+	  energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
+	  energy = energy + det->TSd1rEnergy.at(0);// energy lost and measured in Sd1
+	  
+	  //sector side
+	  energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
+	  det->TSdETot = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
 	}
+	
+	PResid = sqrt(2.*det->TSdETot*mA);     //Beam momentum in MeV/c
+	A = kBF-1.;                              //Quadratic equation parameters
+	B = 2.0*PResid* cos(TMath::DegToRad()*det->TSd1Theta.at(0));
+	C = -1.*(kBF+1)*PResid*PResid; 
+	if (A!=0)    PBeam = (sqrt(B*B-4.*A*C)-B)/(2*A);
+	IrisEvent->fPBeam = PBeam;
+	IrisEvent->fPResid = PResid;
+	IrisEvent->fA = A;
+	IrisEvent->fB = B;
+	IrisEvent->fC = C;
+	//to calculate residue energy from beam
+	
+	//IrisEvent->fEB = PBeam*PBeam/(2.*mA);
+	
+	IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
+	det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
+      }
+      
+      if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
+	// thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
+	thetaR =( atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+1)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance)
+		  + atan((geoP.YdInnerRadius+((det->TYdRing.at(0))*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance) )/2.;
+	//thetaR =( atan((Yd1r+((det->TYdRing+1)*(Yd2r-Yd1r)/16))/YdDistance) + atan((Yd1r+((det->TYdRing)*(Yd2r-Yd1r)/16))/YdDistance) )/2.;
+	thetaD = thetaR*TMath::RadToDeg();
+	IrisEvent->fThetaD = thetaD;
+	EYY1 = det->TYdEnergy.at(0);
+      }	
+      if (det->TCsI1Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
+	
+	CCsI1= det->TCsI1Channel.at(0);
+	
+	ECsI1= det->TCsI1Energy.at(0);
+	
+	ECsI1= ECsI1+elossFi(ECsI1,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar                                                                                  
+	ECsI1= ECsI1+elossFi(ECsI1,0.1*2.70*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al                                                                            
+	ECsI1= ECsI1+elossFi(ECsI1,0.1*1.82*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus                                                                      
+	
+	Eb1= ECsI1+EYY1; //use measured Yd // change june28
+	
+	Eb1= Eb1+elossFi(Eb1,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
+	Eb1= Eb1+elossFi(Eb1,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
+	IrisEvent->fEYY1 = Eb1-ECsI1;
+	Eb1= Eb1+elossFi(Eb1,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+	
+	det->TYdCsI1ETot = Eb1;
+	Pb1 = sqrt(Eb1*Eb1+2.*Eb1*mb);
+	Pb1y = Pb1*sin(thetaR);
+	Pb1xcm = gammaCM*betaCM*(Eb1+mb)- gammaCM*Pb1*cos(thetaR);
+	EB1 = EBeam+mA+ma-Eb1-mb;
+	PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
+	//PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
+	//Q1 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1)+2.*PA*Pb1*cos(thetaR)+2.*(EBeam+mA+ma-Eb1-mb)*ma);  //Alisher's equation 
+	Q1 = mA+ma-mb-sqrt(EB1*EB1-PB1*PB1); //Equivalent to the previous equation
+	// Double_t Eb1_nocorr = det->TYdEnergy.at(0)+det->TCsI1Energy.at(0);
+	// Double_t Pb1_nocorr = sqrt(Eb1_nocorr*Eb1_nocorr+2.*Eb1_nocorr*mb);
+	// Double_t Q1_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1_nocorr)+2.*PA*Pb1_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb1_nocorr-mb)*ma);// without dedx corr
+	IrisEvent->fCCsI1 = CCsI1;
+	IrisEvent->fECsI1 = ECsI1;
+	IrisEvent->fEb1 = Eb1;
+	IrisEvent->fPb1 = Pb1;
+	IrisEvent->fEB1 = EB1;
+	IrisEvent->fPB1 = PB1;
+	IrisEvent->fPb1y = Pb1y;
+	IrisEvent->fPb1xcm = Pb1xcm;
+	IrisEvent->fQv1 = Q1;
+	// IrisEvent->fQv1_nocorr = Q1_nocorr;
+	thetaCM1 = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
+	thetaCM1 = (thetaCM1<0) ? thetaCM1+180. : thetaCM1;
+	IrisEvent->fThetacm1 = thetaCM1;
+      }
+      
+      if (det->TCsI2Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron gate
+
+	CCsI2= det->TCsI2Channel.at(0);	
+	ECsI2= det->TCsI2Energy.at(0);
+	
+	if (mb == target.mass) //proton energy loss in dead layers between YY1 and CsI                                                                                       
+	  {
+	    ECsI2= ECsI2+elossFi(ECsI2,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar                                                                                  
+	    ECsI2= ECsI2+elossFi(ECsI2,0.1*2.70*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al                                                                            
+	    ECsI2= ECsI2+elossFi(ECsI2,0.1*1.82*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus                                                                      
+	  }
+	
+	Eb2= ECsI2+EYY1; //use measured Yd // change june28
+	
+	if (mb == target.mass){
+	  Eb2= Eb2+elossFi(Eb2,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
+	  Eb2= Eb2+elossFi(Eb2,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
+	  Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+	}
+	det->TYdCsI2ETot = Eb2;
+	Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
+	Pb2y = Pb2*sin(thetaR);
+	Pb2xcm = gammaCM*betaCM*(Eb2+mb)- gammaCM*Pb2*cos(thetaR);
+	EB2 = EBeam+mA+ma-Eb2-mb;
+	PB2 = sqrt(PA*PA+Pb2*Pb2-2.*PA*Pb2*cos(thetaR));
+	//Q2 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2)+2.*PA*Pb2*cos(thetaR)+2.*(EBeam+mA+ma-Eb2-mb)*ma);  //Alisher's equation 
+	Q2 = mA+ma-mb-sqrt(EB2*EB2-PB2*PB2); //Equivalent to the previous equation
+	// Double_t Eb2_nocorr = det->TYdEnergy.at(0)+det->TCsI2Energy.at(0);
+	// Double_t Pb2_nocorr = sqrt(Eb2_nocorr*Eb2_nocorr+2.*Eb2_nocorr*mb);
+	// Double_t Q2_nocorr = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2_nocorr)+2.*PA*Pb2_nocorr*cos(thetaR)+2.*(EBeam+mA+ma-Eb2_nocorr-mb)*ma);// without dedx corr
+	IrisEvent->fCCsI2 = CCsI2;
+	IrisEvent->fECsI2 = ECsI2;
+	IrisEvent->fEb2 = Eb2;
+	IrisEvent->fPb2 = Pb2;
+	IrisEvent->fEB2 = EB2;
+	IrisEvent->fPB2 = PB2;
+	IrisEvent->fPb2y = Pb2y;
+	IrisEvent->fPb2xcm = Pb2xcm;
+	IrisEvent->fQv2 = Q2;
+	// IrisEvent->fQv2_nocorr = Q2_nocorr;
+	thetaCM2 = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
+	thetaCM2 = (thetaCM2<0) ? thetaCM2+180. : thetaCM2;
+	IrisEvent->fThetacm2 = thetaCM2;
+      }
+ 
+      tree->Fill();
+    }
 }
 
 void HandleEOR_PHYSICS()

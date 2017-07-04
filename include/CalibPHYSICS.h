@@ -29,6 +29,7 @@ class CalibPHYSICS : public TObject {
 
 		Bool_t boolRunList;
 		Bool_t boolICGates;
+		Bool_t boolIC;
 		Bool_t boolFGate;
 		Bool_t boolNGate;
 		Bool_t boolFSdGate;

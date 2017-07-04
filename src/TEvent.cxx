@@ -64,6 +64,8 @@ TEvent::TEvent(const TEvent &evt) : TObject(evt) //
 
 Int_t TEvent::Clear(){
 	fEYY1 =0;             //
+	fCCsI1=0; // HLC 6/25/17
+	fCCsI2=0; // HLC 6/25/17
 	fECsI1=0;              //
 	fECsI2=0;              //
 	// fSd1=0;              //

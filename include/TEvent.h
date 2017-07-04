@@ -29,6 +29,8 @@ class TEvent : public TObject {
 		// IParticle fPart;        //
 		
 		Double_t fEYY1;             //
+		Int_t fCCsI1; // HLC 06/25/17
+		Int_t fCCsI2; // HLC 06/25/17
 		Double_t fECsI1;              //
 		Double_t fECsI2;              //
 		// Double_t fSd1;              //

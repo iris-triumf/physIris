@@ -90,6 +90,9 @@ void CalibPHYSICS::ReadFilenames(char* line)
 		fileRunDepPar += strval;
 		boolRunDepPar = kTRUE;
 	}
+	if (strcmp(line,"NO_IC")==0){
+		boolIC = kFALSE;
+	}
 	if (strcmp(line,"USE_ICGATES")==0){
 		boolICGates = kTRUE;
 	}
@@ -104,6 +107,7 @@ void CalibPHYSICS::ReadFilenames(char* line)
 }
 
 void CalibPHYSICS::Load(TString filename){
+	boolIC=kTRUE;
 	boolICGates=kFALSE;
 	boolFGate=kFALSE;
 	boolELoss=kFALSE;
@@ -174,6 +178,8 @@ void CalibPHYSICS::Print(){
 	else	printf("No S3 gate name specified.\n");
 	if(boolRunDepPar)	printf("Run dependant parameters: %s\n",fileRunDepPar.data());
 	else	printf("No run dependant parameters specified.\n");
+	if(boolIC)	printf("Isobutane in ionization chamber.\n");
+	else	printf("No isobutane in ionization chamber.\n");
 	if(boolICGates)	printf("Using ionization chamber for incoming ID.\n");
 	else	printf("No incoming ID using the ionization chamber.\n");
 	printf("********************************\n\n");
