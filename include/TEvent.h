@@ -5,15 +5,11 @@
 
 #include <TTree.h>
 #include <TEventList.h>
-//#include <TLorentzRotation.h>
 #include <TLorentzVector.h>
 #include <TObject.h>
 #include <TROOT.h>
 #include <TClonesArray.h>
 #include <TVector3.h>
-//#include "IParticle.h"
-//#include "IDet.h"
-//#include "ITdc.h"
 
 using namespace std;
 
