@@ -19,6 +19,10 @@ class CalibPHYSICS : public TObject {
 		std::string nameGate;
 		std::string fileSdGate;
 		std::string nameSdGate;
+		std::string fileYuGate;
+		std::string nameYuGate;
+		std::string fileSuGate;
+		std::string nameSuGate;
 		std::string fileELoss;
 		std::string fileIdedx;
 		std::string fileLdedx;
@@ -34,6 +38,10 @@ class CalibPHYSICS : public TObject {
 		Bool_t boolNGate;
 		Bool_t boolFSdGate;
 		Bool_t boolNSdGate;
+		Bool_t boolFYuGate;
+		Bool_t boolNYuGate;
+		Bool_t boolFSuGate;
+		Bool_t boolNSuGate;
 		Bool_t boolELoss;
 		Bool_t boolIdedx;
 		Bool_t boolLdedx;

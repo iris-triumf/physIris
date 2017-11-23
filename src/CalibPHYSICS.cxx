@@ -42,6 +42,9 @@ void CalibPHYSICS::ReadFilenames(char* line)
 	if (strcmp(line,"PATH")==0){ 
 		installPath = strval;
 		fileGate = strval;
+		fileSdGate = strval;
+		fileYuGate = strval;
+		fileSuGate = strval;
 		fileELoss = strval;
 		fileIdedx = strval;
 		fileLdedx = strval;
@@ -69,6 +72,22 @@ void CalibPHYSICS::ReadFilenames(char* line)
 	if (strcmp(line,"SDGATENAME")==0){
 		nameSdGate = strval;
 		boolNSdGate = kTRUE;
+	}
+	if (strcmp(line,"GATEFILE_U")==0){
+		fileYuGate += strval;
+		boolFYuGate = kTRUE;
+	}
+	if (strcmp(line,"GATENAME_U")==0){
+		nameYuGate = strval;
+		boolNYuGate = kTRUE;
+	}
+	if (strcmp(line,"SDGATEFILE_U")==0){
+		fileSuGate += strval;
+		boolFSuGate = kTRUE;
+	}
+	if (strcmp(line,"SDGATENAME_U")==0){
+		nameSuGate = strval;
+		boolNSuGate = kTRUE;
 	}
 	if (strcmp(line,"ELOSS")==0){
 		fileELoss += strval;
@@ -110,6 +129,9 @@ void CalibPHYSICS::Load(TString filename){
 	boolIC=kTRUE;
 	boolICGates=kFALSE;
 	boolFGate=kFALSE;
+	boolFSdGate=kFALSE;
+	boolFYuGate=kFALSE;
+	boolFSuGate=kFALSE;
 	boolELoss=kFALSE;
 	boolIdedx=kFALSE;
 	boolHdedx=kFALSE;
@@ -176,6 +198,14 @@ void CalibPHYSICS::Print(){
 	else	printf("No S3 gate file specified.\n");
 	if(boolNSdGate)	printf("S3 gate name: %s\n",nameSdGate.data());
 	else	printf("No S3 gate name specified.\n");
+	if(boolFYuGate)	printf("Upstream YY1 gate in %s\n",fileYuGate.data());
+	else	printf("No Upstream YY1 gate file specified.\n");
+	if(boolNYuGate)	printf("Upstream YY1 gate name: %s\n",nameYuGate.data());
+	else	printf("No upstream YY1 gate name specified.\n");
+	if(boolFSuGate)	printf("Upstream S3 gate in %s\n",fileSuGate.data());
+	else	printf("No upstream S3 gate file specified.\n");
+	if(boolNSuGate)	printf("Upstream S3 gate name: %s\n",nameSuGate.data());
+	else	printf("No upstream S3 gate name specified.\n");
 	if(boolRunDepPar)	printf("Run dependant parameters: %s\n",fileRunDepPar.data());
 	else	printf("No run dependant parameters specified.\n");
 	if(boolIC)	printf("Isobutane in ionization chamber.\n");

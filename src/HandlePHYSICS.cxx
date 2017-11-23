@@ -60,6 +60,7 @@ Double_t PBeam; // Calculated beam momentum after scattering off Ag
 Double_t PA; //Beam momentum before reaction
 Double_t Pb1; //Light ejectile momentum
 Double_t Pb2; //Light ejectile momentum
+Double_t PbU; //Light ejectile momentum
 
 Double_t A,B,C; //Used for quadratic equations
 Double_t MBeam = 0.; // Beam mass
@@ -78,29 +79,24 @@ Double_t mB= 0.; // Heavy ejectile mass
 
 Double_t thetaR=sqrt(-1.);
 Double_t thetaD=sqrt(-1.);
-Double_t Eb1=sqrt(-1.);
-Double_t Eb2=sqrt(-1.);
-Double_t EB1=sqrt(-1.);
-Double_t EB2=sqrt(-1.);
-Double_t PB1=sqrt(-1.);
-Double_t PB2=sqrt(-1.);
+Double_t thetaCM=sqrt(-1.);
 Double_t ECsI1=sqrt(-1.);
 Double_t ECsI2=sqrt(-1.);
 Double_t EYY1=sqrt(-1.);
-Double_t Q1=sqrt(-1.);
-Double_t Q2=sqrt(-1.);
-Double_t thetaCM1=sqrt(-1.);
-Double_t thetaCM2=sqrt(-1.);
-Double_t Pb1y=sqrt(-1.);
-Double_t Pb2y=sqrt(-1.);
-Double_t Pb1xcm=sqrt(-1.);
-Double_t Pb2xcm=sqrt(-1.);
+Double_t Eb1=sqrt(-1.), Eb2=sqrt(-1.), EbU=sqrt(-1.);
+Double_t EB1=sqrt(-1.), EB2=sqrt(-1.), EBU=sqrt(-1.);
+Double_t PB1=sqrt(-1.), PB2=sqrt(-1.), PBU=sqrt(-1.);
+Double_t Q1=sqrt(-1.), Q2=sqrt(-1.), QU=sqrt(-1.);
+Double_t Pb1y=sqrt(-1.), Pb2y=sqrt(-1.), PbUy=sqrt(-1.);
+Double_t Pb1xcm=sqrt(-1.), Pb2xcm=sqrt(-1.), PbUxcm=sqrt(-1.);
 
 Int_t CCsI1=-1;
 Int_t CCsI2=-1;
 	
 TCutG *YdCsIGate = NULL;
 TCutG *SdGate = NULL;
+TCutG *YuGate = NULL;
+TCutG *SuGate = NULL;
 
 IDet detec; // calibrated variables from detectors, to be passed to HandlePhysics
 IDet *det = &detec;
@@ -122,7 +118,7 @@ TChain* createChain(std::vector<Int_t> runs, std::string Directory)
   	
 	TChain *ch = new TChain("Iris");
 	Int_t nRuns = runs.size();
-	cout << "Adding " << nRuns << " runs!\n";
+	printf("Adding %d runs!\n",nRuns);
   	for(int i=0; i< nRuns; ++i) {
 		std::string filename;
 		std::string runNo;
@@ -139,7 +135,7 @@ TChain* createChain(std::vector<Int_t> runs, std::string Directory)
       		printf("WARNING: Tried to add an invalid file: %s ==> Skipping.\n",filename.data());
     	}
   	}
-  	cout << "----------\n\n";
+  	printf("----------\n\n");
   	return ch;
 }
 
@@ -225,7 +221,7 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 
 	Int_t runTmp;
 	std::vector<Int_t> runs;
-	ifstream rFile(calPhys.fileRunList.data());
+	std::ifstream rFile(calPhys.fileRunList.data());
 	char rLine[256]; 
 	if (rFile == NULL || calPhys.boolRunList==false) {
 		printf("No list of runs.\n");
@@ -319,6 +315,32 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 		else printf("No S3 gate.\n"); 
 	}
 	else printf("No S3 gate.\n");  
+
+	if(calPhys.boolFYuGate==kTRUE){
+		TFile *fYuGates = new TFile(calPhys.fileYuGate.data());
+   		printf("opened file %s\n",calPhys.fileYuGate.data());
+   
+		if(calPhys.boolNYuGate==kTRUE){
+			YuGate = (TCutG*)fYuGates->FindObjectAny(calPhys.nameYuGate.data());
+  			if(!YuGate) printf("No Yu gate.\n");  
+			else printf("Grabbed Yu gate %s.\n",calPhys.nameGate.data());
+		}
+		else printf("No Yu gate.\n"); 
+	}
+	else printf("No Yu gate.\n");  
+	
+	if(calPhys.boolFSuGate==kTRUE){
+		TFile *fSuGates = new TFile(calPhys.fileSuGate.data());
+   		printf("opened file %s\n",calPhys.fileSuGate.data());
+   
+		if(calPhys.boolNSuGate==kTRUE){
+			SuGate = (TCutG*)fSuGates->FindObjectAny(calPhys.nameSuGate.data());
+  			if(!SuGate) printf("No upstream S3 gate.\n");  
+			else printf("Grabbed upstream S3 gate %s.\n",calPhys.nameSuGate.data());
+		}
+		else printf("No upstream S3 gate.\n"); 
+	}
+	else printf("No upstream S3 gate.\n");  
 	
 	geoP.ReadGeometry(calPhys.fileGeometry.data());
 	geoP.Print();
@@ -455,6 +477,11 @@ void HandlePHYSICS()
 		if (YdCsIGate!=NULL&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
 		if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
 		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
+		if (YuGate!=NULL&&det->TYuEnergy.size()==0) continue; // event has Yu hit?
+		if (YuGate!=NULL&&YuGate->IsInside(det->TYuTheta.at(0),det->TYuEnergy.at(0))==0) continue; // event in proton/deuteron/etc YuGate?
+		if (SuGate!=NULL&&(det->TSurEnergy.size()==0||det->TSusEnergy.size()==0)) continue; // event has Su hit?
+		if (SuGate!=NULL&&SuGate->IsInside(det->TSuTheta.at(0),det->TSurEnergy.at(0))==0) continue; // event in proton/deuteron/etc SuGate?
+		
 		if(runDepPar.bool_runPar == kTRUE && Run != prevRun){
 		  	getRunPar(Run);
 		  	calculateBeamEnergy(runDepPar.energy);
@@ -510,17 +537,14 @@ void HandlePHYSICS()
 			IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
 			det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
       	}
-      
+       
       	if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
 			thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
-			//thetaR =( atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+1)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance)
-			//	  + atan((geoP.YdInnerRadius+((det->TYdRing.at(0))*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance) )/2.;
-			//thetaR =( atan((Yd1r+((det->TYdRing+1)*(Yd2r-Yd1r)/16))/YdDistance) + atan((Yd1r+((det->TYdRing)*(Yd2r-Yd1r)/16))/YdDistance) )/2.;
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaD = thetaD;
 			EYY1 = det->TYdEnergy.at(0);
 		}	
-		
+     
 		if (det->TCsI1Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
 		
 			CCsI1= det->TCsI1Channel.at(0);
@@ -554,9 +578,9 @@ void HandlePHYSICS()
 			IrisEvent->fPb1y = Pb1y;
 			IrisEvent->fPb1xcm = Pb1xcm;
 			IrisEvent->fQv1 = Q1;
-			thetaCM1 = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
-			thetaCM1 = (thetaCM1<0) ? thetaCM1+180. : thetaCM1;
-			IrisEvent->fThetacm1 = thetaCM1;
+			thetaCM = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
+			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
+			IrisEvent->fThetacm1 = thetaCM;
 		}
       
 		if (det->TCsI2Energy.size()>0&&det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron gate
@@ -591,36 +615,42 @@ void HandlePHYSICS()
 			IrisEvent->fPb2y = Pb2y;
 			IrisEvent->fPb2xcm = Pb2xcm;
 			IrisEvent->fQv2 = Q2;
-			thetaCM2 = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
-			thetaCM2 = (thetaCM2<0) ? thetaCM2+180. : thetaCM2;
-			IrisEvent->fThetacm2 = thetaCM2;
+			thetaCM = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
+			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
+			IrisEvent->fThetacm2 = thetaCM;
 		}
- 
-		if (det->TYuEnergy.size()>0&&det->TYuRing.size()>0) {    //check if in the proton/deuteron gate
+  	
+		// Upstream
+		// Upstream
+		// Upstream
+		
+		if (det->TYuEnergy.size()>0&&det->TYuRing.size()>0) {    //check if in the proton/deuteron YuGate
+			thetaR = atan((geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YuDistance);
+			thetaD = thetaR*TMath::RadToDeg();
+			IrisEvent->fThetaDU = thetaD;
 
-			Eb2= EYY1; //use measured Yd // change june28
+			EbU=  det->TYuEnergy.at(0); //use measured Yd // change june28
 			
-			Eb2= Eb2+elossFi(Eb2,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
-			Eb2= Eb2+elossFi(Eb2,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
-			Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
+			EbU= EbU+elossFi(EbU,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
+			EbU= EbU+elossFi(EbU,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
 			
-			Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
-			Pb2y = Pb2*sin(thetaR);
-			Pb2xcm = gammaCM*betaCM*(Eb2+mb)- gammaCM*Pb2*cos(thetaR);
-			EB2 = EBeam+mA+ma-Eb2-mb;
-			PB2 = sqrt(PA*PA+Pb2*Pb2-2.*PA*Pb2*cos(thetaR));
-			//Q2 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb2)+2.*PA*Pb2*cos(thetaR)+2.*(EBeam+mA+ma-Eb2-mb)*ma);  //Alisher's equation 
-			Q2 = mA+ma-mb-sqrt(EB2*EB2-PB2*PB2); //Equivalent to the previous equation
-			IrisEvent->fEb2 = Eb2;
-			IrisEvent->fPb2 = Pb2;
-			IrisEvent->fEB2 = EB2;
-			IrisEvent->fPB2 = PB2;
-			IrisEvent->fPb2y = Pb2y;
-			IrisEvent->fPb2xcm = Pb2xcm;
-			IrisEvent->fQv2 = Q2;
-			thetaCM2 = TMath::RadToDeg()*atan(Pb2y/Pb2xcm);
-			thetaCM2 = (thetaCM2<0) ? thetaCM2+180. : thetaCM2;
-			IrisEvent->fThetacm2 = thetaCM2;
+			PbU = sqrt(EbU*EbU+2.*EbU*mb);
+			PbUy = Pb2*sin(thetaR);
+			PbUxcm = gammaCM*betaCM*(EbU+mb)- gammaCM*Pb2*cos(thetaR);
+			EBU = EBeam+mA+ma-EbU-mb;
+			PBU = sqrt(PA*PA+PbU*PbU-2.*PA*PbU*cos(thetaR));
+			QU = mA+ma-mb-sqrt(EBU*EBU-PBU*PBU);
+			IrisEvent->fEbU = EbU;
+			IrisEvent->fPbU = PbU;
+			IrisEvent->fEBU = EBU;
+			IrisEvent->fPBU = PBU;
+			IrisEvent->fPbUy = PbUy;
+			IrisEvent->fPbUxcm = PbUxcm;
+			IrisEvent->fQvU = QU;
+			thetaCM = TMath::RadToDeg()*atan(PbUy/PbUxcm);
+			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
+			IrisEvent->fThetacmU = thetaCM;
 		}
 		tree->Fill();
 	} // end event loop
