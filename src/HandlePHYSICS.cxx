@@ -559,7 +559,7 @@ void HandlePHYSICS()
 			Eb1= Eb1+elossFi(Eb1,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
 			Eb1= Eb1+elossFi(Eb1,0.1*2.702*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
 			IrisEvent->fEYY1 = Eb1-ECsI1;
-			Eb1= Eb1+elossFi(Eb1,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+			Eb1= Eb1+elossFi(Eb1,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
 			
 			det->TYdCsI1ETot = Eb1;
 			Pb1 = sqrt(Eb1*Eb1+2.*Eb1*mb);
@@ -596,7 +596,7 @@ void HandlePHYSICS()
 			
 			Eb2= Eb2+elossFi(Eb2,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
 			Eb2= Eb2+elossFi(Eb2,0.1*2.702*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
-			Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+			Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
 			
 			det->TYdCsI2ETot = Eb2;
 			Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
@@ -625,19 +625,19 @@ void HandlePHYSICS()
 		// Upstream
 		
 		if (det->TYuEnergy.size()>0&&det->TYuRing.size()>0) {    //check if in the proton/deuteron YuGate
-			thetaR = atan((geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YuDistance);
+			thetaR = atan(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YuDistance);
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaDU = thetaD;
 
 			EbU=  det->TYuEnergy.at(0); //use measured Yd // change june28
 			
-			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
-			EbU= EbU+elossFi(EbU,0.1*2.70*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
-			EbU= EbU+elossFi(EbU,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy  in mid target midtarget
+			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cos(TMath::Pi()-thetaR),ebB,dedxbB); //0.05 u B 
+			EbU= EbU+elossFi(EbU,0.1*2.70*0.1/cos(TMath::Pi()-thetaR),ebAl,dedxbAl); //0.1 u Al
+			EbU= EbU+elossFi(EbU,geoP.TargetThickness/2./cos(TMath::Pi()-thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
 			
 			PbU = sqrt(EbU*EbU+2.*EbU*mb);
-			PbUy = Pb2*sin(thetaR);
-			PbUxcm = gammaCM*betaCM*(EbU+mb)- gammaCM*Pb2*cos(thetaR);
+			PbUy = PbU*sin(thetaR);
+			PbUxcm = gammaCM*betaCM*(EbU+mb)- gammaCM*PbU*cos(thetaR);
 			EBU = EBeam+mA+ma-EbU-mb;
 			PBU = sqrt(PA*PA+PbU*PbU-2.*PA*PbU*cos(thetaR));
 			QU = mA+ma-mb-sqrt(EBU*EBU-PBU*PBU);
