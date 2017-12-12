@@ -472,9 +472,11 @@ void HandlePHYSICS()
 		if (det->TICEnergy.size()==0) continue; 
 		if (det->TICEnergy.at(0)<runDepPar.ICmin || det->TICEnergy.at(0)>runDepPar.ICmax) continue; // event in IC YdCsIGate?
 		if (YdCsIGate!=NULL&&(det->TYdEnergy.size()==0||det->TCsI1Energy.size()==0||det->TCsI2Energy.size()==0)) continue; // event has YY1 and CsI hit?
-		if (YdCsIGate!=NULL&&det->TCsI1Channel[0]-det->TCsI2Channel.at(0)!=0) continue; // CsI1 and CsI2 channels the same?
-		if (YdCsIGate!=NULL&&int(det->TCsI1Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
-		if (YdCsIGate!=NULL&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
+		//if (YdCsIGate!=NULL&&det->TCsI1Channel[0]-det->TCsI2Channel.at(0)!=0) continue; // CsI1 and CsI2 channels the same?
+		if (YdCsIGate!=NULL&&calPhys.numGate!=2&&int(det->TCsI1Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
+		if (YdCsIGate!=NULL&&calPhys.numGate!=2&&YdCsIGate->IsInside(det->TCsI1Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
+		if (YdCsIGate!=NULL&&calPhys.numGate==2&&int(det->TCsI2Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
+		if (YdCsIGate!=NULL&&calPhys.numGate==2&&YdCsIGate->IsInside(det->TCsI2Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
 		if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
 		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
 		if (YuGate!=NULL&&det->TYuEnergy.size()==0) continue; // event has Yu hit?

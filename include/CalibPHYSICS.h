@@ -30,12 +30,14 @@ class CalibPHYSICS : public TObject {
 		std::string fileRunDepPar;
 		std::string fileGeometry;
 		std::string fileTCorrIC;
+		Int_t numGate;
 
 		Bool_t boolRunList;
 		Bool_t boolICGates;
 		Bool_t boolIC;
 		Bool_t boolFGate;
 		Bool_t boolNGate;
+		Bool_t boolNumGate;
 		Bool_t boolFSdGate;
 		Bool_t boolNSdGate;
 		Bool_t boolFYuGate;
@@ -50,6 +52,7 @@ class CalibPHYSICS : public TObject {
 		Bool_t boolGeometry;
 		Bool_t boolEssential;
 		Bool_t boolTCorrIC;
+		
 
 		//virtual void ReadCalibPar(char* line);
 		virtual void ReadFilenames(char* line);

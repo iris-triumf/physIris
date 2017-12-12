@@ -35,8 +35,10 @@ void CalibPHYSICS::ReadFilenames(char* line)
 
 	char cval[256];	
 	TString strval;
+	Int_t ival;
 	sscanf(val,"%s",cval);
 	strval=cval;
+	sscanf(val,"%d",&ival);
 	
 	//	parameter of type string:
 	if (strcmp(line,"PATH")==0){ 
@@ -64,6 +66,10 @@ void CalibPHYSICS::ReadFilenames(char* line)
 	if (strcmp(line,"GATENAME")==0){
 		nameGate = strval;
 		boolNGate = kTRUE;
+	}
+	if (strcmp(line,"GATENUM")==0){
+		numGate = ival;
+		boolNumGate = kTRUE;
 	}
 	if (strcmp(line,"SDGATEFILE")==0){
 		fileSdGate += strval;
@@ -141,6 +147,7 @@ void CalibPHYSICS::Load(TString filename){
 	boolRunList=kFALSE;
 	boolTCorrIC=kFALSE;
 	boolEssential=kFALSE;
+	numGate = 1;
 
 	char line[256];
 	FILE* file=fopen(filename.Data(),"rb");
@@ -194,6 +201,7 @@ void CalibPHYSICS::Print(){
 	else	printf("No YY1/CsI gate file specified.\n");
 	if(boolNGate)	printf("YY1/CsI gate name: %s\n",nameGate.data());
 	else	printf("No YY1/CsI gate name specified.\n");
+	printf("Using CsI%d for gate.\n",numGate);
 	if(boolFSdGate)	printf("S3 gate in %s\n",fileSdGate.data());
 	else	printf("No S3 gate file specified.\n");
 	if(boolNSdGate)	printf("S3 gate name: %s\n",nameSdGate.data());
