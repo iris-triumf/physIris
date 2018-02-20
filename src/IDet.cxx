@@ -15,6 +15,7 @@ void IDet::Clear()
 	TYdChannel.clear();
 	TYdNo.clear();
 	TYdRing.clear();
+	TYdNeighbour.clear();
 	
 	TCsI1Mul=0;
 	TCsI2Mul=0;
@@ -51,15 +52,19 @@ void IDet::Clear()
   	TSdThetaCM=0;
   	TSd1rEnergy.clear();
 	TSd1rChannel.clear();
+	TSd1rNeighbour.clear();
   	TSd1rADC.clear();
   	TSd2rEnergy.clear();
 	TSd2rChannel.clear();
+	TSd2rNeighbour.clear();
   	TSd2rADC.clear();
   	TSd1sEnergy.clear();
 	TSd1sChannel.clear();
+	TSd1sNeighbour.clear();
   	TSd1sADC.clear();
   	TSd2sEnergy.clear();
 	TSd2sChannel.clear();
+	TSd2sNeighbour.clear();
   	TSd2sADC.clear();
   	TSd1Theta.clear();
   	TSd2Theta.clear();
@@ -73,14 +78,17 @@ void IDet::Clear()
 	TYuChannel.clear();
 	TYuNo.clear();
 	TYuRing.clear();
+	TYuNeighbour.clear();
 	
 	TSurMul=0;
 	TSusMul=0;
 	TSurEnergy.clear();
 	TSurChannel.clear();
+	TSurNeighbour.clear();
   	TSurADC.clear();
 	TSusEnergy.clear();
 	TSusChannel.clear();
+	TSusNeighbour.clear();
   	TSusADC.clear();
   	TSuTheta.clear();
   	TSuPhi.clear();
