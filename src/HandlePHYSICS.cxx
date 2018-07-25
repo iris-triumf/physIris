@@ -429,8 +429,6 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			if(dedx_h.boolB==kTRUE) loadELoss(dedx_h.B, eBB,dedxBB,mB);	
 			if(dedx_h.boolP==kTRUE) loadELoss(dedx_h.P, eBP,dedxBP,mB);	
 			if(dedx_h.boolSiO2==kTRUE) loadELoss(dedx_h.SiO2,eBSiO2,dedxBSiO2,mB);	
-			if(dedx_h.boolIso==kTRUE) loadELoss(dedx_h.Iso,eBIso,dedxBIso,mB);	
-			if(dedx_h.boolWndw==kTRUE) loadELoss(dedx_h.Wndw,eBWndw,dedxBWndw,mB);	
 		}
 
 		// Initialize runPar with values from first run in chain	
