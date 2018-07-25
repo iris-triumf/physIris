@@ -396,12 +396,6 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			dedx_i.Load(calPhys.fileIdedx);
 			dedx_i.Print();
 			if(dedx_i.boolAg==kTRUE) loadELoss(dedx_i.Ag,eAAg,dedxAAg,mA);	
-			if(dedx_i.boolTgt==kTRUE) loadELoss(dedx_i.Tgt,eATgt,dedxATgt,mA);	
-			if(dedx_i.boolSi==kTRUE) loadELoss(dedx_i.Si,eBSi,dedxBSi,mB);	
-			if(dedx_i.boolAl==kTRUE) loadELoss(dedx_i.Al,eBAl,dedxBAl,mB);	
-			if(dedx_i.boolB==kTRUE) loadELoss(dedx_i.B, eBB,dedxBB,mB);	
-			if(dedx_i.boolP==kTRUE) loadELoss(dedx_i.P, eBP,dedxBP,mB);	
-			if(dedx_i.boolSiO2==kTRUE) loadELoss(dedx_i.SiO2,eBSiO2,dedxBSiO2,mB);	
 			if(dedx_i.boolIso==kTRUE) loadELoss(dedx_i.Iso,eAIso,dedxAIso,mA);	
 			if(dedx_i.boolWndw==kTRUE) loadELoss(dedx_i.Wndw,eAWndw,dedxAWndw,mA);	
 		}
@@ -422,7 +416,6 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			printf("\n\nLoading dedx Graphs for beam-like %s...\n",runDepPar.nB.data());
 			dedx_h.Load(calPhys.fileHdedx);
 			dedx_h.Print();
-			if(dedx_h.boolAg==kTRUE) loadELoss(dedx_h.Ag,eAAg,dedxAAg,mA);	
 			if(dedx_h.boolTgt==kTRUE) loadELoss(dedx_h.Tgt,eBTgt,dedxBTgt,mB);	
 			if(dedx_h.boolSi==kTRUE) loadELoss(dedx_h.Si,eBSi,dedxBSi,mB);	
 			if(dedx_h.boolAl==kTRUE) loadELoss(dedx_h.Al,eBAl,dedxBAl,mB);	
