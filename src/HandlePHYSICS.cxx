@@ -243,16 +243,9 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 	
 	// deactivate some branches, only relevant for simulated data from simIris
 	if(input_chain->GetListOfBranches()->FindObject("Evnt")) input_chain->SetBranchStatus("Evnt",0); 
-	if(input_chain->GetListOfBranches()->FindObject("beamE")) input_chain->SetBranchStatus("beamE",0); 
-	if(input_chain->GetListOfBranches()->FindObject("beamBeta")) input_chain->SetBranchStatus("beamBeta",0); 
-	if(input_chain->GetListOfBranches()->FindObject("beamGamma")) input_chain->SetBranchStatus("beamGamma",0); 
-	if(input_chain->GetListOfBranches()->FindObject("beamEcm")) input_chain->SetBranchStatus("beamEcm",0); 
 	if(input_chain->GetListOfBranches()->FindObject("reacX")) input_chain->SetBranchStatus("reacX",0); 
 	if(input_chain->GetListOfBranches()->FindObject("reacY")) input_chain->SetBranchStatus("reacY",0); 
 	if(input_chain->GetListOfBranches()->FindObject("reacZ")) input_chain->SetBranchStatus("reacZ",0); 
-	if(input_chain->GetListOfBranches()->FindObject("hPdec")) input_chain->SetBranchStatus("hPdec*",0); 
-	if(input_chain->GetListOfBranches()->FindObject("lPdec1")) input_chain->SetBranchStatus("lPdec1*",0); 
-	if(input_chain->GetListOfBranches()->FindObject("lPdec2")) input_chain->SetBranchStatus("lPdec2*",0); 
 	if(input_chain->GetListOfBranches()->FindObject("wght")) input_chain->SetBranchStatus("wght",0); 
 	if(input_chain->GetListOfBranches()->FindObject("Qgen")) input_chain->SetBranchStatus("Qgen",0); 
 	if(input_chain->GetListOfBranches()->FindObject("qdet")) input_chain->SetBranchStatus("Qdet",0); 
@@ -436,8 +429,8 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			if(dedx_h.boolB==kTRUE) loadELoss(dedx_h.B, eBB,dedxBB,mB);	
 			if(dedx_h.boolP==kTRUE) loadELoss(dedx_h.P, eBP,dedxBP,mB);	
 			if(dedx_h.boolSiO2==kTRUE) loadELoss(dedx_h.SiO2,eBSiO2,dedxBSiO2,mB);	
-			if(dedx_h.boolIso==kTRUE) loadELoss(dedx_h.Iso,eAIso,dedxAIso,mB);	
-			if(dedx_h.boolWndw==kTRUE) loadELoss(dedx_h.Wndw,eAWndw,dedxAWndw,mB);	
+			if(dedx_h.boolIso==kTRUE) loadELoss(dedx_h.Iso,eBIso,dedxBIso,mB);	
+			if(dedx_h.boolWndw==kTRUE) loadELoss(dedx_h.Wndw,eBWndw,dedxBWndw,mB);	
 		}
 
 		// Initialize runPar with values from first run in chain	
