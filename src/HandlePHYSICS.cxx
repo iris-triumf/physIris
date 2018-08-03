@@ -221,7 +221,8 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 
 	Int_t runTmp;
 	std::vector<Int_t> runs;
-	std::ifstream rFile(calPhys.fileRunList.data());
+	FILE *rFile;
+	rFile = fopen(calPhys.fileRunList.data(), "r");	
 	char rLine[256]; 
 	if (rFile == NULL || calPhys.boolRunList==false) {
 		printf("No list of runs.\n");
@@ -229,13 +230,13 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
  	else  {
 		printf("Reading run List '%s'\n",calPhys.fileRunList.data());
 
-		while(!rFile.eof()){
-			rFile.getline(rLine,256);
-			printf("%s\n",rLine);
+		while (!feof(rFile)){
+			fgets(rLine,256,rFile);
+			printf("%s",rLine);
        		sscanf(rLine,"%*s %*s %*s %d",&runTmp);
 			if(runs.size()==0 || runTmp>runs.at(runs.size()-1)) runs.push_back(runTmp);
      	}
-     	rFile.close();
+		fclose(rFile);	
 		printf("\n");
  	}
 
