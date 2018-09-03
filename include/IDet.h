@@ -102,9 +102,26 @@ class IDet : public TObject {
 		std::vector<Int_t> TSusNeighbour;
 		std::vector<Double_t> TSuTheta;
 		std::vector<Double_t> TSuPhi;
+		
+		Int_t TZdxMul;
+		std::vector<Int_t> TZdxChannel;
+		std::vector<Double_t> TZdxPos;
+		std::vector<Double_t> TZdxEnergy;
+		std::vector<Int_t> TZdxADC;
+
+		Int_t TZdyMul;
+		std::vector<Int_t> TZdyChannel;
+		std::vector<Double_t> TZdyPos;
+		std::vector<Double_t> TZdyEnergy;
+		std::vector<Int_t> TZdyADC;
+	
+		Int_t TZdMul;
+		std::vector<Double_t> TZdR;
+		std::vector<Double_t> TZdTheta;
+		std::vector<Double_t> TZdPhi;
 	
 	void Clear();
-	ClassDef(IDet,1)
+	ClassDef(IDet,2)
 };
 
 #endif

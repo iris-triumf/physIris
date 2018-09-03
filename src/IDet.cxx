@@ -92,5 +92,22 @@ void IDet::Clear()
   	TSusADC.clear();
   	TSuTheta.clear();
   	TSuPhi.clear();
+		
+	TZdxMul=0;
+	TZdxEnergy.clear();
+	TZdxChannel.clear();
+	TZdxPos.clear();
+  	TZdxADC.clear();
+
+	TZdyMul=0;
+	TZdyEnergy.clear();
+	TZdyChannel.clear();
+	TZdyPos.clear();
+  	TZdyADC.clear();
+
+	TZdMul=0;
+	TZdR.clear();
+	TZdTheta.clear();
+	TZdPhi.clear();
 }
 
