@@ -24,6 +24,7 @@ void geometry::ReadGeometry(std::string filename)
 	xShift = 0.;
 	yShift = 0.;
 	TargetThickness = 0.;
+	TargetOrientation = 0;
 	FoilThickness = 0.;
 
 	char buffer[256];
@@ -54,7 +55,9 @@ void geometry::ReadGeometry(std::string filename)
 			
 			// parse float parameter (if any)
 			Double_t v;
+			Double_t vi;
 			sscanf(val,"%lf",&v);
+			sscanf(val,"%d",&vi);
 		
 			if (strcmp(buffer,"YD1_THICKNESS")==0)	YdThickness[0] = v;
 			if (strcmp(buffer,"YD2_THICKNESS")==0)	YdThickness[1] = v;
@@ -87,6 +90,7 @@ void geometry::ReadGeometry(std::string filename)
 			if (strcmp(buffer,"X_SHIFT")==0)	xShift = v;
 			if (strcmp(buffer,"Y_SHIFT")==0)	yShift = v;
 			if (strcmp(buffer,"TARGET_THICKNESS")==0)	TargetThickness = v;
+			if (strcmp(buffer,"TARGET_ORIENTATION")==0)	TargetThickness = vi;
 			if (strcmp(buffer,"FOIL_THICKNESS")==0)	FoilThickness = v;
 		}
 		fclose(parFile);

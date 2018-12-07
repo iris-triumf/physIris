@@ -11,6 +11,7 @@ class geometry : public TObject {
 		virtual ~geometry() {} //! 
 		
 		Double_t TargetThickness;
+		Int_t TargetOrientation;
 		Double_t FoilThickness;
 		Double_t xShift;
 		Double_t yShift;
