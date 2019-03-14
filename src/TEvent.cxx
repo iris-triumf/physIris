@@ -73,7 +73,9 @@ void TEvent::Clear(){
 	fThetacm1=0;
 	fThetacm2=0;
 	fThetacmU=0;
+	fThetacmUSd=0;
 	fThetaD=0;
 	fThetaDU=0;
+	fThetaDUSd=0;
 }
 

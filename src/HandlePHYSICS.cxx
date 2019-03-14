@@ -61,6 +61,7 @@ Double_t PA; //Beam momentum before reaction
 Double_t Pb1; //Light ejectile momentum
 Double_t Pb2; //Light ejectile momentum
 Double_t PbU; //Light ejectile momentum
+Double_t PbUSd; //Light ejectile momentum
 
 Double_t A,B,C; //Used for quadratic equations
 Double_t MBeam = 0.; // Beam mass
@@ -83,12 +84,12 @@ Double_t thetaCM=sqrt(-1.);
 Double_t ECsI1=sqrt(-1.);
 Double_t ECsI2=sqrt(-1.);
 Double_t EYY1=sqrt(-1.);
-Double_t Eb1=sqrt(-1.), Eb2=sqrt(-1.), EbU=sqrt(-1.);
-Double_t EB1=sqrt(-1.), EB2=sqrt(-1.), EBU=sqrt(-1.);
-Double_t PB1=sqrt(-1.), PB2=sqrt(-1.), PBU=sqrt(-1.);
-Double_t Q1=sqrt(-1.), Q2=sqrt(-1.), QU=sqrt(-1.);
-Double_t Pb1y=sqrt(-1.), Pb2y=sqrt(-1.), PbUy=sqrt(-1.);
-Double_t Pb1xcm=sqrt(-1.), Pb2xcm=sqrt(-1.), PbUxcm=sqrt(-1.);
+Double_t Eb1=sqrt(-1.), Eb2=sqrt(-1.), EbU=sqrt(-1.), EbUSd=sqrt(-1.);
+Double_t EB1=sqrt(-1.), EB2=sqrt(-1.), EBU=sqrt(-1.), EBUSd=sqrt(-1.);
+Double_t PB1=sqrt(-1.), PB2=sqrt(-1.), PBU=sqrt(-1.), PBUSd=sqrt(-1.);
+Double_t Q1=sqrt(-1.), Q2=sqrt(-1.), QU=sqrt(-1.), QUSd=sqrt(-1.);
+Double_t Pb1y=sqrt(-1.), Pb2y=sqrt(-1.), PbUy=sqrt(-1.), PbUSdy=sqrt(-1.);
+Double_t Pb1xcm=sqrt(-1.), Pb2xcm=sqrt(-1.), PbUxcm=sqrt(-1.), PbUSdxcm=sqrt(-1.);
 
 Int_t CCsI1=-1;
 Int_t CCsI2=-1;
@@ -317,7 +318,7 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 		if(calPhys.boolNYuGate==kTRUE){
 			YuGate = (TCutG*)fYuGates->FindObjectAny(calPhys.nameYuGate.data());
   			if(!YuGate) printf("No Yu gate.\n");  
-			else printf("Grabbed Yu gate %s.\n",calPhys.nameGate.data());
+			else printf("Grabbed Yu gate %s.\n",calPhys.nameYuGate.data());
 		}
 		else printf("No Yu gate.\n"); 
 	}
@@ -386,7 +387,7 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 		ma = target.mass;
 		mb = lej.mass; //Light ejectile mass
 		mB = hej.mass;
-    	printf("mA=%f, ma=%f, mb=%f, mB=%f\n",mA,ma,mb,mB); 
+		printf("mA=%f, ma=%f, mb=%f, mB=%f\n",mA,ma,mb,mB); 
 		kBF = MFoil/mA;
 	
 		printf("Beam energy: %f\n", runDepPar.energy);
@@ -450,7 +451,7 @@ void HandlePHYSICS()
   	printf("%d entries in total.\n",nEntries);
   	for(Int_t i=0; i<nEntries; i++)
     {
-		Long64_t check_entry = input_chain->LoadTree(i);
+               Long64_t check_entry = input_chain->LoadTree(i);
 		if(check_entry<0) break;
 		input_chain->GetEntry(i);
 		if((i%100)==0) printf("Processing event %d\r",i);
@@ -616,7 +617,7 @@ void HandlePHYSICS()
 		        thetaR = atan2(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16)),geoP.YuDistance);
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaDU = thetaD;
-
+			
 			EbU=  det->TYuEnergy.at(0); //use measured Yd // change june28
 			
 			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cos(TMath::Pi()-thetaR),ebB,dedxbB); //0.05 u B 
@@ -640,6 +641,37 @@ void HandlePHYSICS()
 			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
 			IrisEvent->fThetacmU = thetaCM;
 		}
+
+		if(det->TSurEnergy.size()>0){
+		        thetaD = det->TSuTheta.at(0);
+			thetaR = TMath::DegToRad()*thetaD;      
+			IrisEvent->fThetaDUSd = thetaD;
+			cosTheta = cos(TMath::DegToRad()* (det->TSuTheta.at(0)));
+
+			EbUSd = det->TSurEnergy.at(0);
+			//sector side
+			EbUSd = EbUSd+elossFi(EbUSd,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
+		        EbUSd = EbUSd+elossFi(EbUSd,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
+
+			PbUSd = sqrt(EbUSd*EbUSd+2.*EbUSd*mb);
+			PbUSdy = PbUSd*sin(thetaR);
+			PbUSdxcm = gammaCM*betaCM*(EbUSd+mb)- gammaCM*PbUSd*cos(thetaR);
+			EBUSd = EBeam+mA+ma-EbUSd-mb;
+			PBUSd = sqrt(PA*PA+PbUSd*PbUSd-2.*PA*PbUSd*cos(thetaR));
+			QUSd = mA+ma-mb-sqrt(EBUSd*EBUSd-PBUSd*PBUSd);
+			IrisEvent->fEbUSd = EbUSd;
+			IrisEvent->fPbUSd = PbUSd;
+			IrisEvent->fEBUSd = EBUSd;
+			IrisEvent->fPBUSd = PBUSd;
+			IrisEvent->fPbUSdy = PbUSdy;
+			IrisEvent->fPbUSdxcm = PbUSdxcm;
+			IrisEvent->fQvUSd = QUSd;
+			thetaCM = TMath::RadToDeg()*atan(PbUSdy/PbUSdxcm);
+			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
+			IrisEvent->fThetacmUSd = thetaCM;
+		}
+
+		
 		tree->Fill();
 	} // end event loop
 }

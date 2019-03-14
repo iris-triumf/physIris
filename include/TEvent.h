@@ -22,8 +22,10 @@ class TEvent : public TObject {
 		Double_t fThetacm1;
 		Double_t fThetacm2;
 		Double_t fThetacmU;
+		Double_t fThetacmUSd;
 		Double_t fThetaD;
 		Double_t fThetaDU;
+		Double_t fThetaDUSd;
 			
 		Double_t fEBAC;
 		Double_t fmA;
