@@ -43,10 +43,10 @@ const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
 
 Double_t eATgt[100], eAIso[100], eAWndw[100], eAAg[100];	
 Double_t dedxATgt[100], dedxAIso[100], dedxAWndw[100], dedxAAg[100];	
-Double_t eBSi[100], eBTgt[100], eBSiO2[100], eBB[100], eBP[100], eBAl[100], eBMy[100], eBCsI[100];	
-Double_t dedxBSi[100], dedxBTgt[100], dedxBSiO2[100], dedxBB[100], dedxBP[100], dedxBAl[100], dedxBMy[100], dedxBCsI[100];	
-Double_t ebTgt[100], ebSi[100], ebAl[100], ebB[100], ebMy[100], ebP[100], ebCsI[100], ebSiO2[100];	
-Double_t dedxbTgt[100], dedxbSi[100], dedxbAl[100], dedxbB[100], dedxbMy[100], dedxbP[100], dedxbCsI[100], dedxbSiO2[100];	
+Double_t eBSi[100], eBTgt[100], eBSiO2[100], eBB[100], eBP[100], eBAl[100], eBMy[100], eBCsI[100], eBAg[100];	
+Double_t dedxBSi[100], dedxBTgt[100], dedxBSiO2[100], dedxBB[100], dedxBP[100], dedxBAl[100], dedxBMy[100], dedxBCsI[100], dedxBAg[100];	
+Double_t ebTgt[100], ebSi[100], ebAl[100], ebB[100], ebMy[100], ebP[100], ebCsI[100], ebSiO2[100], ebAg[100];	
+Double_t dedxbTgt[100], dedxbSi[100], dedxbAl[100], dedxbB[100], dedxbMy[100], dedxbP[100], dedxbCsI[100], dedxbSiO2[100], dedxbAg[100];	
 
 double EBAC = 0.; //Beam energy from accelerator
 runDep runDepPar; // run dependant parameters
@@ -179,6 +179,7 @@ void calculateBeamEnergy(Double_t E)
 	runDepPar.EBAC = E;
 	printf("New Beam Energy: %f\n" ,E);
 	Double_t temp_E = E;
+	Double_t HalfTargE;
 	if(calPhys.boolIC==kTRUE){
 		E = E-eloss(E,ICWindow1,eAWndw,dedxAWndw);  
 		E = E-eloss(E,ICLength,eAIso,dedxAIso)/ICELossCorr;  
@@ -187,18 +188,34 @@ void calculateBeamEnergy(Double_t E)
 
 		temp_E = E;
 	}
-	//if(geoP.FoilThickness>0.) E = runDepPar.energy-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
-	if(geoP.FoilThickness>0.) E = E-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
-	else E = temp_E;
-	printf("Energy loss in silver foil: %.3f MeV\n" ,temp_E-E);
-	printf("Energy after silver foil: %.3f MeV\n",E);
+	if(geoP.TargetOrientation==kTRUE){//foil facing downstream of target
+		E = E-eloss(E,geoP.TargetThickness/2.,eATgt,dedxATgt);  
+		printf("Energy loss in half target: %.3f MeV\n" ,temp_E-E);
+		printf("Beam energy in center of target: %.3f MeV\n" ,E);
+		HalfTargE = E;
+		E = E-eloss(E,geoP.TargetThickness/2.,eATgt,dedxATgt);// eloss in remainder of target  
 
-	temp_E = E;
-	E = E-eloss(E,geoP.TargetThickness/2.,eATgt,dedxATgt);  
-	printf("Energy loss in half target: %.3f MeV\n" ,temp_E-E);
-	printf("Beam energy in center of target: %.3f MeV\n" ,E);
+		temp_E = E;
 
-	runDepPar.energy = E;
+		if(geoP.FoilThickness>0.) E = E-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
+		else E = temp_E;
+		printf("Energy loss in silver foil: %.3f MeV\n" ,temp_E-E);
+		printf("Energy after silver foil: %.3f MeV\n",E);
+	}
+	else{ //foil facing upstream of target
+	        if(geoP.FoilThickness>0.) E = E-eloss(E,geoP.FoilThickness,eAAg,dedxAAg);  
+		else E = temp_E;
+		printf("Energy loss in silver foil: %.3f MeV\n" ,temp_E-E);
+		printf("Energy after silver foil: %.3f MeV\n",E);
+
+		temp_E = E;
+		E = E-eloss(E,geoP.TargetThickness/2.,eATgt,dedxATgt);  
+		printf("Energy loss in half target: %.3f MeV\n" ,temp_E-E);
+		printf("Beam energy in center of target: %.3f MeV\n" ,E);
+		HalfTargE = E;
+	}
+	
+	runDepPar.energy = HalfTargE;;
 	runDepPar.momentum = sqrt(runDepPar.energy*runDepPar.energy+2.*runDepPar.energy*beam.mass);//beam momentum
 	runDepPar.beta = runDepPar.momentum/(runDepPar.energy + beam.mass + target.mass);
 	runDepPar.gamma = 1./sqrt(1.-runDepPar.beta*runDepPar.beta);
@@ -413,6 +430,7 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			if(dedx_l.boolP==kTRUE) loadELoss(dedx_l.P,ebP,dedxbP,mb);	
 			if(dedx_l.boolMy==kTRUE) loadELoss(dedx_l.My,ebMy,dedxbMy,mb);	
 			if(dedx_l.boolTgt==kTRUE) loadELoss(dedx_l.Tgt,ebTgt,dedxbTgt,mb);	
+			if(dedx_l.boolAg==kTRUE) loadELoss(dedx_l.Ag,ebAg,dedxbAg,mb);	
 		}
 
 		if(calPhys.boolHdedx==kTRUE){
@@ -424,7 +442,8 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			if(dedx_h.boolAl==kTRUE) loadELoss(dedx_h.Al,eBAl,dedxBAl,mB);	
 			if(dedx_h.boolB==kTRUE) loadELoss(dedx_h.B, eBB,dedxBB,mB);	
 			if(dedx_h.boolP==kTRUE) loadELoss(dedx_h.P, eBP,dedxBP,mB);	
-			if(dedx_h.boolSiO2==kTRUE) loadELoss(dedx_h.SiO2,eBSiO2,dedxBSiO2,mB);	
+			if(dedx_h.boolSiO2==kTRUE) loadELoss(dedx_h.SiO2,eBSiO2,dedxBSiO2,mB);
+			if(dedx_h.boolAg==kTRUE) loadELoss(dedx_h.Ag, eBAg,dedxBAg,mB);		
 		}
 
 		// Initialize runPar with values from first run in chain	
@@ -506,7 +525,15 @@ void HandlePHYSICS()
 	  			
 	  			//sector side
 	  			energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
-	  			det->TSdETot = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
+	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
+			
+				//target/foil Orientation
+				energy = energy+elossFi(energy,geoP.TargetThickness/2./cosTheta,eBTgt,dedxBTgt); // SHT energy loss
+				if(geoP.TargetOrientation==kTRUE){ //Foil downstream of target
+				  energy = energy+elossFi(energy,geoP.FoilThickness/cosTheta,eBAg,dedxBAg); // Ag foil energyloss
+				}
+				
+				det->TSdETot = energy;
 			}
 	
 			PResid = sqrt(2.*det->TSdETot*mA);     //Beam momentum in MeV/c
@@ -520,14 +547,13 @@ void HandlePHYSICS()
 			IrisEvent->fB = B;
 			IrisEvent->fC = C;
 			//to calculate residue energy from beam
+			IrisEvent->fEB=  det->TSdETot;
+			//IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
 			
-			//IrisEvent->fEB = PBeam*PBeam/(2.*mA);
-			
-			IrisEvent->fEB=  IrisEvent->fEB + elossFi(det->TSdETot,geoP.FoilThickness/2.,eAAg,dedxAAg); //energy loss from the end of H2 to the center of Ag.
-			det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
-      	}
+		        det->TSdThetaCM = TMath::RadToDeg()*atan(tan(TMath::DegToRad()*det->TSd1Theta.at(0))/sqrt(gammaCM-gammaCM*betaCM*(mA+IrisEvent->fEB)/(PBeam*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))));// check if this is still correct for H2 target tk
+		}
        
-      	if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
+		if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
 			thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaD = thetaD;
@@ -539,10 +565,9 @@ void HandlePHYSICS()
 			CCsI1= det->TCsI1Channel.at(0);
 			ECsI1= det->TCsI1Energy.at(0);
 			
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar                                                                                  
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*2.702*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al                                                                            
-			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.822*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus                                                                      
-			
+			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.4*6./cos(thetaR),ebMy,dedxbMy); //Mylar
+			ECsI1= ECsI1+elossFi(ECsI1,0.1*2.702*0.3/cos(thetaR),ebAl,dedxbAl); //0.3 u Al
+			ECsI1= ECsI1+elossFi(ECsI1,0.1*1.822*0.1/cos(thetaR),ebP,dedxbP); // 0.1Phosphorus			
 			Eb1= ECsI1+EYY1; //use measured Yd // change june28
 			
 			Eb1= Eb1+elossFi(Eb1,0.1*2.35*0.05/cos(thetaR),ebB,dedxbB); //0.05 u B 
@@ -550,6 +575,10 @@ void HandlePHYSICS()
 			IrisEvent->fEYY1 = Eb1-ECsI1;
 			Eb1= Eb1+elossFi(Eb1,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
 			
+			if(geoP.TargetOrientation==kTRUE){ //Foil downstream of target
+			  Eb1 = Eb1+elossFi(Eb1,geoP.FoilThickness/cos(thetaR),ebAg,dedxbAg); //
+			}
+
 			det->TYdCsI1ETot = Eb1;
 			Pb1 = sqrt(Eb1*Eb1+2.*Eb1*mb);
 			Pb1y = Pb1*sin(thetaR);
@@ -587,6 +616,10 @@ void HandlePHYSICS()
 			Eb2= Eb2+elossFi(Eb2,0.1*2.702*0.1/cos(thetaR),ebAl,dedxbAl); //0.1 u Al
 			Eb2= Eb2+elossFi(Eb2,geoP.TargetThickness/2./cos(thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
 			
+			if(geoP.TargetOrientation==kTRUE){ //Foil downstream of target
+			  Eb2 = Eb2+elossFi(Eb2,geoP.FoilThickness/cos(thetaR),ebAg,dedxbAg); //
+			}
+
 			det->TYdCsI2ETot = Eb2;
 			Pb2 = sqrt(Eb2*Eb2+2.*Eb2*mb);
 			Pb2y = Pb2*sin(thetaR);
@@ -617,13 +650,18 @@ void HandlePHYSICS()
 		        thetaR = atan2(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16)),geoP.YuDistance);
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaDU = thetaD;
+			cosTheta = cos(TMath::Pi()-thetaR);
 			
 			EbU=  det->TYuEnergy.at(0); //use measured Yd // change june28
 			
-			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cos(TMath::Pi()-thetaR),ebB,dedxbB); //0.05 u B 
-			EbU= EbU+elossFi(EbU,0.1*2.70*0.1/cos(TMath::Pi()-thetaR),ebAl,dedxbAl); //0.1 u Al
-			EbU= EbU+elossFi(EbU,geoP.TargetThickness/2./cos(TMath::Pi()-thetaR),ebTgt,dedxbTgt); //deuteron energy midtarget
+			EbU= EbU+elossFi(EbU,0.1*2.35*0.05/cosTheta,ebB,dedxbB); //0.05 u B 
+			EbU= EbU+elossFi(EbU,0.1*2.70*0.1/cosTheta,ebAl,dedxbAl); //0.1 u Al
+			EbU= EbU+elossFi(EbU,geoP.TargetThickness/2./cosTheta,ebTgt,dedxbTgt); //deuteron energy midtarget
 			
+			if(geoP.TargetOrientation==kFALSE){ //Foil upstream of target
+			  EbU = EbU+elossFi(EbU,geoP.FoilThickness/cosTheta,ebAg,dedxbAg); //
+			}
+
 			PbU = sqrt(EbU*EbU+2.*EbU*mb);
 			PbUy = PbU*sin(thetaR);
 			PbUxcm = gammaCM*betaCM*(EbU+mb)- gammaCM*PbU*cos(thetaR);
@@ -646,13 +684,18 @@ void HandlePHYSICS()
 		        thetaD = det->TSuTheta.at(0);
 			thetaR = TMath::DegToRad()*thetaD;      
 			IrisEvent->fThetaDUSd = thetaD;
-			cosTheta = cos(TMath::DegToRad()* (det->TSuTheta.at(0)));
+			cosTheta = cos(TMath::Pi()-thetaR);
 
 			EbUSd = det->TSurEnergy.at(0);
 			//sector side
-			EbUSd = EbUSd+elossFi(EbUSd,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
-		        EbUSd = EbUSd+elossFi(EbUSd,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
+			EbUSd = EbUSd+elossFi(EbUSd,0.1*1.822*0.5/cosTheta,ebP,dedxbP); //phosphorus implant
+		        EbUSd = EbUSd+elossFi(EbUSd,0.1*2.7*0.3/cosTheta,ebAl,dedxbAl); //metal
+			EbUSd = EbUSd+elossFi(EbUSd,geoP.TargetThickness/2./cosTheta,ebTgt,dedxbTgt); //deuteron energy midtarget
 
+			if(geoP.TargetOrientation==kFALSE){ //Foil upstream of target
+			  EbUSd = EbUSd+elossFi(EbUSd,geoP.FoilThickness/cosTheta,ebAg,dedxbAg); //
+			}
+					  
 			PbUSd = sqrt(EbUSd*EbUSd+2.*EbUSd*mb);
 			PbUSdy = PbUSd*sin(thetaR);
 			PbUSdxcm = gammaCM*betaCM*(EbUSd+mb)- gammaCM*PbUSd*cos(thetaR);

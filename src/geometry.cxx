@@ -90,7 +90,7 @@ void geometry::ReadGeometry(std::string filename)
 			if (strcmp(buffer,"X_SHIFT")==0)	xShift = v;
 			if (strcmp(buffer,"Y_SHIFT")==0)	yShift = v;
 			if (strcmp(buffer,"TARGET_THICKNESS")==0)	TargetThickness = v;
-			if (strcmp(buffer,"TARGET_ORIENTATION")==0)	TargetThickness = vi;
+			if (strcmp(buffer,"TARGET_ORIENTATION")==0)	TargetOrientation = vi;
 			if (strcmp(buffer,"FOIL_THICKNESS")==0)	FoilThickness = v;
 		}
 		fclose(parFile);
@@ -101,6 +101,7 @@ void geometry::Print()
 {
 	printf("\n*** Experiment Geometry:\n");		
 	printf("Target thickness: %.2f mg/cm^2\n",TargetThickness);
+	printf("Target Orientation: %d (0=foil upstream of target;1=foil downstream of target)\n",TargetOrientation);
 	printf("Ag foil thickness: %.2f mg/cm^2\n",FoilThickness);
 	printf("Beam shift in x-direction: %.1f mm\n",xShift);
 	printf("Beam shift in y-direction: %.1f mm\n",yShift);
