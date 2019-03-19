@@ -681,7 +681,7 @@ void HandlePHYSICS()
 		}
 
 		if(det->TSurEnergy.size()>0){
-		        thetaR = atan2(geoP.SdInnerRadius+((geoP.SdOuterRadius-geoP.SdInnerRadius)/24.)*det->TSurChannel.at(0)-0.5,geoP.SuDistance);				       
+		        thetaR = atan2(geoP.SdInnerRadius+((geoP.SdOuterRadius-geoP.SdInnerRadius)/24.)*(det->TSurChannel.at(0)+1.)-0.5,geoP.SuDistance);
 			thetaD = TMath::RadToDeg()*thetaR;
 			IrisEvent->fThetaDUSd = thetaD;
 			cosTheta = cos(TMath::Pi()-thetaR);
