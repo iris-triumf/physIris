@@ -55,7 +55,7 @@ void geometry::ReadGeometry(std::string filename)
 			
 			// parse float parameter (if any)
 			Double_t v;
-			Double_t vi;
+			Int_t vi;
 			sscanf(val,"%lf",&v);
 			sscanf(val,"%d",&vi);
 		
