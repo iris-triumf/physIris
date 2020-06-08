@@ -554,7 +554,8 @@ void HandlePHYSICS()
 		}
        
 		if (det->TYdEnergy.size()>0&&det->TYdRing.size()>0) {    //check if in the proton/deuteron YdCsIGate
-			thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
+			//thetaR = atan((geoP.YdInnerRadius+((det->TYdRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16))/geoP.YdDistance);
+			thetaR=det->TYdTheta.at(0)*TMath::Pi()/180.;//randomized angles from treeIris (or simIris)
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaD = thetaD;
 			EYY1 = det->TYdEnergy.at(0);
@@ -647,7 +648,8 @@ void HandlePHYSICS()
 		// Upstream
 		
 		if (det->TYuEnergy.size()>0&&det->TYuRing.size()>0) {    //check if in the proton/deuteron YuGate
-		        thetaR = atan2(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16)),geoP.YuDistance);
+		        //thetaR = atan2(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16)),geoP.YuDistance);
+			thetaR=det->TYuTheta.at(0)*TMath::Pi()/180.;//randomized angles from treeIris (or simIris)
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaDU = thetaD;
 			cosTheta = cos(TMath::Pi()-thetaR);
@@ -681,7 +683,8 @@ void HandlePHYSICS()
 		}
 
 		if(det->TSurEnergy.size()>0){
-		        thetaR = atan2(geoP.SdInnerRadius+((geoP.SdOuterRadius-geoP.SdInnerRadius)/24.)*(det->TSurChannel.at(0)+1.)-0.5,geoP.SuDistance);
+		        //thetaR = atan2(geoP.SdInnerRadius+((geoP.SdOuterRadius-geoP.SdInnerRadius)/24.)*(det->TSurChannel.at(0)+1.)-0.5,geoP.SuDistance);
+			thetaR=det->TSuTheta.at(0)*TMath::Pi()/180.;//randomized angles from treeIris (or simIris)
 			thetaD = TMath::RadToDeg()*thetaR;
 			IrisEvent->fThetaDUSd = thetaD;
 			cosTheta = cos(TMath::Pi()-thetaR);
