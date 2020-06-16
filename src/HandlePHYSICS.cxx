@@ -648,7 +648,7 @@ void HandlePHYSICS()
 		// Upstream
 		
 		if (det->TYuEnergy.size()>0&&det->TYuRing.size()>0) {    //check if in the proton/deuteron YuGate
-		        //thetaR = atan2(TMath::Pi()+(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16)),geoP.YuDistance);
+		        //thetaR = atan2(geoP.YdInnerRadius+((det->TYuRing.at(0)+0.5)*(geoP.YdOuterRadius-geoP.YdInnerRadius)/16),geoP.YuDistance);
 			thetaR=det->TYuTheta.at(0)*TMath::Pi()/180.;//randomized angles from treeIris (or simIris)
 			thetaD = thetaR*TMath::RadToDeg();
 			IrisEvent->fThetaDU = thetaD;
