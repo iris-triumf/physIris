@@ -11,6 +11,7 @@
 #include <TTimer.h>
 #include <TFile.h>
 #include <TTree.h>
+//#include <mach-o/dyld.h>  // for macOs only
 //#include "Globals.h"
 
 #include "HandlePHYSICS.h"
@@ -36,6 +37,18 @@ std::string GetBinDir()
 {
 	std::string path;
 	char buff[256];
+   
+    //below is for macOs
+ /*   uint32_t size = sizeof(buff);
+    if(_NSGetExecutablePath(buff, &size)==0){
+          printf("executable path is %s\n",buff);
+          path = std::string(buff);
+        }
+        else
+          printf("buffer too small; need size %u\n",size);
+    
+*/
+    //below is for linux OS
     ssize_t len = ::readlink("/proc/self/exe", buff, sizeof(buff)-1);
 	if (len != -1) {
 			buff[len] = '\0';
