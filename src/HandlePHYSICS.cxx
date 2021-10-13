@@ -110,8 +110,8 @@ PTrack *plP = &lP;
 PTrack hP;
 PTrack *phP = &hP;
 
-UInt_t Run, Event;
-UInt_t prevRun =0;
+Int_t Run, Event;
+Int_t prevRun =0;
 
 TChain* createChain(std::vector<Int_t> runs, std::string Directory)
 {
@@ -513,25 +513,24 @@ void HandlePHYSICS()
 	  			cosTheta = cos(TMath::DegToRad()* (det->TSd1Theta.at(0)));
 	  			//Sd2 ring side
 	  			energy = det->TSd2sEnergy.at(0);
-	  			energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
+                energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
+                energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
+                energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
+                energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
+                
+                energy = energy + det->TSd1rEnergy.at(0);// energy lost and measured in Sd1
+    
+                energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
 	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
 	  			energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
 	  			energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
-	  			//Sd1 ring side
-	  			energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
-	  			energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
-	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
-	  			energy = energy + det->TSd1rEnergy.at(0);// energy lost and measured in Sd1
-	  			
-	  			//sector side
-	  			energy = energy+elossFi(energy,0.1*1.822*0.5/cosTheta,eBP,dedxBP); //phosphorus implant
-	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //metal
 			
 				//target/foil Orientation
+                if(geoP.TargetOrientation==kTRUE){ //Foil downstream of target
+                  energy = energy+elossFi(energy,geoP.FoilThickness/cosTheta,eBAg,dedxBAg); // Ag foil energyloss
+                }
 				energy = energy+elossFi(energy,geoP.TargetThickness/2./cosTheta,eBTgt,dedxBTgt); // SHT energy loss
-				if(geoP.TargetOrientation==kTRUE){ //Foil downstream of target
-				  energy = energy+elossFi(energy,geoP.FoilThickness/cosTheta,eBAg,dedxBAg); // Ag foil energyloss
-				}
+				
 				
 				det->TSdETot = energy;
 			}
