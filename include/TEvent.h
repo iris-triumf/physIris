@@ -82,6 +82,7 @@ class TEvent : public TObject {
 		Double_t fEBUSd;	// Calculated heavy particle energy
 		Double_t fPBUSd;	// Calculated heavy particle momentum
 		Double_t fQvUSd;	// Q-value
+		Double_t fQsd;  
 		
 		void Clear();	//! Clear values
 		
