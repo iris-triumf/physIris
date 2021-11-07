@@ -37,7 +37,7 @@ const int Nchannels = 24;
 const int binlimit = 1900;
  		
 const Double_t ICLength=22.9*0.062; //cm*mg/cm^3 at 19.5 Torr
-const Double_t ICWindow1=0.03*3.44*0.1; //mu*g/cm^3*0.1
+const Double_t ICWindow1=0.05*3.44*0.1; //mu*g/cm^3*0.1 replaced with 50nm in 2020 autumn from 30nm
 const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
 
 
