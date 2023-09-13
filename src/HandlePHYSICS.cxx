@@ -37,7 +37,7 @@ const int Nchannels = 24;
 const int binlimit = 1900;
  		
 const Double_t ICLength=22.9*0.062; //cm*mg/cm^3 at 19.5 Torr
-const Double_t ICWindow1=0.03*3.44*0.1; //mu*g/cm^3*0.1
+const Double_t ICWindow1=0.05*3.44*0.1; //mu*g/cm^3*0.1
 const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
 
 
@@ -484,7 +484,7 @@ void HandlePHYSICS()
 		if (YdCsIGate!=NULL&&calPhys.numGate==2&&int(det->TCsI2Channel[0]/2)-det->TYdNo.at(0)!=0) continue; // CsI hit behind Yd hit?
 		if (YdCsIGate!=NULL&&calPhys.numGate==2&&YdCsIGate->IsInside(det->TCsI2Energy.at(0),det->TYdEnergy.at(0)*cos(TMath::DegToRad()*det->TYdTheta.at(0)))==0) continue; // event in proton/deuteron/etc YdCsIGate?
 		if (SdGate!=NULL&&(det->TSd1rEnergy.size()==0||det->TSd1sEnergy.size()==0||det->TSd2rEnergy.size()==0||det->TSd2sEnergy.size()==0)) continue; // event has S3 hit?
-		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2sEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
+		if (SdGate!=NULL&&SdGate->IsInside(det->TSd2rEnergy.at(0),det->TSd1rEnergy.at(0)*cos(TMath::DegToRad()*det->TSd1Theta.at(0)))==0) continue; // event in proton/deuteron/etc SdGate?
 		if (YuGate!=NULL&&det->TYuEnergy.size()==0) continue; // event has Yu hit?
 		if (YuGate!=NULL&&YuGate->IsInside(det->TYuTheta.at(0),det->TYuEnergy.at(0))==0) continue; // event in proton/deuteron/etc YuGate?
 		if (SuGate!=NULL&&(det->TSurEnergy.size()==0||det->TSusEnergy.size()==0)) continue; // event has Su hit?
@@ -508,8 +508,8 @@ void HandlePHYSICS()
 		IrisEvent->fPA = PA;
 		
 		//adding dead layer energy losses
-		if(det->TSd1rEnergy.size()>0 && det->TSd2sEnergy.size()>0){
-			if(det->TSd1rEnergy.at(0)>0. && det->TSd2sEnergy.at(0)>0.){
+		if(det->TSd1rEnergy.size()>0 && det->TSd1sEnergy.size()>0){
+			if(det->TSd2rEnergy.at(0)>0. && det->TSd2sEnergy.at(0)>0.){
 	  			cosTheta = cos(TMath::DegToRad()* (det->TSd1Theta.at(0)));
 	  			//Sd2 ring side
 	  			energy = det->TSd2sEnergy.at(0);
@@ -522,7 +522,7 @@ void HandlePHYSICS()
     
                 energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
 	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
-	  			energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
+	  			energy = energy+elossFi(energy,0.1*2.65*3.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
 	  			energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
 			
 				//target/foil Orientation
