@@ -37,7 +37,7 @@ const int Nchannels = 24;
 const int binlimit = 1900;
  		
 const Double_t ICLength=22.9*0.062; //cm*mg/cm^3 at 19.5 Torr
-const Double_t ICWindow1=0.05*3.44*0.1; //mu*g/cm^3*0.1 replaced with 50nm in 2020 autumn from 30nm
+const Double_t ICWindow1=0.05*3.44*0.1; //mu*g/cm^3*0.1
 const Double_t ICWindow2=0.05*3.44*0.1; //mu*g/cm^3*0.1
 
 
@@ -87,7 +87,7 @@ Double_t EYY1=sqrt(-1.);
 Double_t Eb1=sqrt(-1.), Eb2=sqrt(-1.), EbU=sqrt(-1.), EbUSd=sqrt(-1.);
 Double_t EB1=sqrt(-1.), EB2=sqrt(-1.), EBU=sqrt(-1.), EBUSd=sqrt(-1.);
 Double_t PB1=sqrt(-1.), PB2=sqrt(-1.), PBU=sqrt(-1.), PBUSd=sqrt(-1.);
-Double_t Q1=sqrt(-1.), Q2=sqrt(-1.), QU=sqrt(-1.), QUSd=sqrt(-1.);
+Double_t Q1=sqrt(-1.), Q2=sqrt(-1.), QU=sqrt(-1.), QUSd=sqrt(-1.), Ex = sqrt(-1.) , ExU = sqrt(-1.) ;
 Double_t Pb1y=sqrt(-1.), Pb2y=sqrt(-1.), PbUy=sqrt(-1.), PbUSdy=sqrt(-1.);
 Double_t Pb1xcm=sqrt(-1.), Pb2xcm=sqrt(-1.), PbUxcm=sqrt(-1.), PbUSdxcm=sqrt(-1.);
 
@@ -112,6 +112,7 @@ PTrack *phP = &hP;
 
 Int_t Run, Event;
 Int_t prevRun =0;
+double Qgs = 0;
 
 TChain* createChain(std::vector<Int_t> runs, std::string Directory)
 {
@@ -221,6 +222,7 @@ void calculateBeamEnergy(Double_t E)
 	runDepPar.gamma = 1./sqrt(1.-runDepPar.beta*runDepPar.beta);
 
 	EBAC = runDepPar.EBAC;
+	Qgs = runDepPar.Q ;
 	EBeam= runDepPar.energy;
 	PA = runDepPar.momentum;//beam momentum
 	betaCM = runDepPar.beta;
@@ -409,7 +411,8 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 	
 		printf("Beam energy: %f\n", runDepPar.energy);
 		// printf("Target thickness: %f\n",geoP.TargetThickness);
-	
+		
+
 		if(calPhys.boolIdedx==kTRUE){
 			printf("\n\nLoading dedx Graphs for incoming %s ...\n",runDepPar.nA.data());
 			dedx_i.Load(calPhys.fileIdedx);
@@ -424,10 +427,10 @@ void HandleBOR_PHYSICS(std::string BinPath, std::string Directory, std::string C
 			printf("\n\nLoading dedx Graphs for target-like %s...\n",runDepPar.nb.data());
 			dedx_l.Load(calPhys.fileLdedx);
 			dedx_l.Print();
-			if(dedx_l.boolSi==kTRUE) loadELoss(dedx_l.Si,ebSi,dedxbSi,mb);	
-			if(dedx_l.boolAl==kTRUE) loadELoss(dedx_l.Al,ebAl,dedxbAl,mb);	
-			if(dedx_l.boolB==kTRUE) loadELoss(dedx_l.B,ebB,dedxbB,mb);	
-			if(dedx_l.boolP==kTRUE) loadELoss(dedx_l.P,ebP,dedxbP,mb);	
+			if(dedx_l.boolSi==kTRUE) loadELoss(dedx_l.Si,ebSi,dedxbSi,mb);
+			if(dedx_l.boolAl==kTRUE) loadELoss(dedx_l.Al,ebAl,dedxbAl,mb);
+			if(dedx_l.boolB==kTRUE) loadELoss(dedx_l.B,ebB,dedxbB,mb);
+			if(dedx_l.boolP==kTRUE) loadELoss(dedx_l.P,ebP,dedxbP,mb);
 			if(dedx_l.boolMy==kTRUE) loadELoss(dedx_l.My,ebMy,dedxbMy,mb);	
 			if(dedx_l.boolTgt==kTRUE) loadELoss(dedx_l.Tgt,ebTgt,dedxbTgt,mb);	
 			if(dedx_l.boolAg==kTRUE) loadELoss(dedx_l.Ag,ebAg,dedxbAg,mb);	
@@ -522,7 +525,7 @@ void HandlePHYSICS()
     
                 energy = energy+elossFi(energy,0.1*2.35*0.5/cosTheta,eBB,dedxBB); //boron junction implant
 	  			energy = energy+elossFi(energy,0.1*2.7*0.3/cosTheta,eBAl,dedxBAl); //first metal
-	  			energy = energy+elossFi(energy,0.1*2.65*2.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
+	  			energy = energy+elossFi(energy,0.1*2.65*3.5/cosTheta,eBSiO2,dedxBSiO2); //SiO2
 	  			energy = energy+elossFi(energy,0.1*2.7*1.5/cosTheta,eBAl,dedxBAl); //second metal
 			
 				//target/foil Orientation
@@ -587,6 +590,8 @@ void HandlePHYSICS()
 			PB1 = sqrt(PA*PA+Pb1*Pb1-2.*PA*Pb1*cos(thetaR));
 			//Q1 = mA+ma-mb- sqrt(mA*mA+mb*mb-ma*ma-2.*(mA+EBeam)*(mb+Eb1)+2.*PA*Pb1*cos(thetaR)+2.*(EBeam+mA+ma-Eb1-mb)*ma);  //Alisher's equation 
 			Q1 = mA+ma-mb-sqrt(EB1*EB1-PB1*PB1); //Equivalent to the previous equation
+			Qgs = runDepPar.Q;
+			Ex = Qgs - Q1;
 			IrisEvent->fCCsI1 = CCsI1;
 			IrisEvent->fECsI1 = ECsI1;
 			IrisEvent->fEb1 = Eb1;
@@ -596,6 +601,7 @@ void HandlePHYSICS()
 			IrisEvent->fPb1y = Pb1y;
 			IrisEvent->fPb1xcm = Pb1xcm;
 			IrisEvent->fQv1 = Q1;
+			IrisEvent->fEx = Ex ;
 			thetaCM = TMath::RadToDeg()*atan(Pb1y/Pb1xcm);
 			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
 			IrisEvent->fThetacm1 = thetaCM;
@@ -669,6 +675,7 @@ void HandlePHYSICS()
 			EBU = EBeam+mA+ma-EbU-mb;
 			PBU = sqrt(PA*PA+PbU*PbU-2.*PA*PbU*cos(thetaR));
 			QU = mA+ma-mb-sqrt(EBU*EBU-PBU*PBU);
+			ExU = Qgs - QU ; 
 			IrisEvent->fEbU = EbU;
 			IrisEvent->fPbU = PbU;
 			IrisEvent->fEBU = EBU;
@@ -676,6 +683,7 @@ void HandlePHYSICS()
 			IrisEvent->fPbUy = PbUy;
 			IrisEvent->fPbUxcm = PbUxcm;
 			IrisEvent->fQvU = QU;
+			IrisEvent->fExU = ExU ;
 			thetaCM = TMath::RadToDeg()*atan(PbUy/PbUxcm);
 			thetaCM = (thetaCM<0) ? thetaCM+180. : thetaCM;
 			IrisEvent->fThetacmU = thetaCM;
