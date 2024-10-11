@@ -70,6 +70,7 @@ class TEvent : public TObject {
 		Double_t fEB1;	// Calculated heavy particle energy
 		Double_t fPB1;	// Calculated heavy particle momentum
 		Double_t fQv1;	// Q-value
+		Double_t fEx;  
 		
 		Double_t fEB2;	// Calculated heavy particle energy
 		Double_t fPB2;	// Calculated heavy particle momentum
@@ -78,11 +79,13 @@ class TEvent : public TObject {
 		Double_t fEBU;	// Calculated heavy particle energy
 		Double_t fPBU;	// Calculated heavy particle momentum
 		Double_t fQvU;	// Q-value
+		Double_t fExU;  
 		
 		Double_t fEBUSd;	// Calculated heavy particle energy
 		Double_t fPBUSd;	// Calculated heavy particle momentum
 		Double_t fQvUSd;	// Q-value
 		Double_t fQsd;  
+
 		
 		void Clear();	//! Clear values
 		

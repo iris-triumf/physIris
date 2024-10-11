@@ -69,6 +69,8 @@ void TEvent::Clear(){
 	fEBUSd=0; //Calculated heavy particle energy
 	fPBUSd=0; //Calculated heavy particle momentum
 	fQvUSd=0;
+	fEx = 0 ;
+	fExU = 0 ;
 	
 	fThetacm1=0;
 	fThetacm2=0;
